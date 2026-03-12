@@ -92,6 +92,48 @@ log list --action blocked --days 3        # 扫描执行者求助日志
 log list --days 30 --limit 50             # 最近30天，最多50条
 ```
 
+### GitHub 集成
+
+> **重要**：GitHub 集成用于为任务创建 GitHub 仓库并自动生成 README 文档。
+
+```bash
+# 查看 GitHub 集成状态
+github status <task_id>
+
+# AI 生成项目方案（返回提示词，需要你调用 LLM 生成内容）
+github generate-plan <task_id>
+
+# 提交方案内容（AI 生成后调用，会验证内容是否符合要求）
+github submit-plan <task_id> --content "<方案内容>"
+
+# 创建 GitHub 仓库（方案通过验证后调用）
+github create-repo <task_id>
+
+# AI 生成 README（返回提示词）
+github generate-readme <task_id>
+
+# 提交 README 内容
+github submit-readme <task_id> --content "<README内容>"
+
+# 推送到 GitHub
+github push-readme <task_id>
+```
+
+#### GitHub 工作流程
+
+1. 任务创建后，先调用 `github generate-plan` 获取方案提示词
+2. 调用 LLM 生成方案内容，然后 `github submit-plan` 提交
+3. 方案验证通过后，调用 `github create-repo` 创建 GitHub 仓库
+4. 调用 `github generate-readme` 获取 README 提示词
+5. 调用 LLM 生成 README，然后 `github submit-readme` 提交
+6. 最后 `github push-readme` 推送到 GitHub
+
+#### 验证失败重试
+
+- 方案和 README 提交时会进行内容验证
+- 如果验证失败，会返回错误信息，你最多可以重试 3 次
+- 3 次都失败会通知管理员
+
 ## 注意事项
 
 - 每次执行前先运行 `rules` 获取最新规则

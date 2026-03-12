@@ -7,6 +7,7 @@ OpenMOSS 任务调度 CLI 工具
 
 服务地址在下方 BASE_URL 中配置。
 """
+
 import sys
 import json
 import argparse
@@ -22,6 +23,7 @@ CLI_VERSION = 1  # CLI 版本号，更新后递增
 # ============================================================
 # HTTP 工具
 # ============================================================
+
 
 def _headers(key: str) -> dict:
     return {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
@@ -48,7 +50,9 @@ def _extract_items(data):
         page_size = data.get("page_size", 0)
         has_more = data.get("has_more", False)
         if page_size > 0:
-            print(f"  [第 {page} 页，共 {data.get('total_pages', 1)} 页，{total} 条记录]")
+            print(
+                f"  [第 {page} 页，共 {data.get('total_pages', 1)} 页，{total} 条记录]"
+            )
         else:
             print(f"  [共 {total} 条记录]")
         return data["items"]
@@ -75,12 +79,17 @@ def _request(method, path, key, **kwargs):
 # 注册命令（不需要 key）
 # ============================================================
 
+
 def cmd_register(args):
     """注册 Agent"""
     r = requests.post(
         f"{BASE_URL}/api/agents/register",
         headers=_reg_headers(args.token),
-        json={"name": args.name, "role": args.role, "description": args.description or ""},
+        json={
+            "name": args.name,
+            "role": args.role,
+            "description": args.description or "",
+        },
     )
     if r.status_code >= 400:
         print(f"❌ 注册失败: {r.json().get('detail', r.text)}")
@@ -97,6 +106,7 @@ def cmd_register(args):
 # 规则
 # ============================================================
 
+
 def cmd_rules(args):
     """获取规则"""
     data = _request("get", "/rules", args.key, params={"cli_version": CLI_VERSION})
@@ -111,10 +121,15 @@ def cmd_rules(args):
 # 任务
 # ============================================================
 
+
 def cmd_task_create(args):
     """创建任务"""
-    data = _request("post", "/tasks", args.key,
-                    json={"name": args.name, "description": args.desc or "", "type": args.type})
+    data = _request(
+        "post",
+        "/tasks",
+        args.key,
+        json={"name": args.name, "description": args.desc or "", "type": args.type},
+    )
     print(f"✅ 任务已创建: {data['id']}")
     _print_json(data)
 
@@ -124,9 +139,9 @@ def cmd_task_list(args):
     params = {}
     if args.status:
         params["status"] = args.status
-    if hasattr(args, 'page') and args.page:
+    if hasattr(args, "page") and args.page:
         params["page"] = args.page
-    if hasattr(args, 'page_size') and args.page_size:
+    if hasattr(args, "page_size") and args.page_size:
         params["page_size"] = args.page_size
     data = _request("get", "/tasks", args.key, params=params)
     items = _extract_items(data)
@@ -157,7 +172,9 @@ def cmd_task_edit(args):
 
 def cmd_task_status(args):
     """更新任务状态"""
-    data = _request("put", f"/tasks/{args.id}/status", args.key, json={"status": args.status})
+    data = _request(
+        "put", f"/tasks/{args.id}/status", args.key, json={"status": args.status}
+    )
     print(f"✅ 任务状态已更新: {data['status']}")
 
 
@@ -171,10 +188,15 @@ def cmd_task_cancel(args):
 # 模块
 # ============================================================
 
+
 def cmd_module_create(args):
     """创建模块"""
-    data = _request("post", f"/tasks/{args.task_id}/modules", args.key,
-                    json={"name": args.name, "description": args.desc or ""})
+    data = _request(
+        "post",
+        f"/tasks/{args.task_id}/modules",
+        args.key,
+        json={"name": args.name, "description": args.desc or ""},
+    )
     print(f"✅ 模块已创建: {data['id']}")
 
 
@@ -188,6 +210,7 @@ def cmd_module_list(args):
 # ============================================================
 # 子任务
 # ============================================================
+
 
 def cmd_sub_task_create(args):
     """创建子任务"""
@@ -216,9 +239,9 @@ def cmd_sub_task_list(args):
         params["task_id"] = args.task_id
     if args.status:
         params["status"] = args.status
-    if hasattr(args, 'page') and args.page:
+    if hasattr(args, "page") and args.page:
         params["page"] = args.page
-    if hasattr(args, 'page_size') and args.page_size:
+    if hasattr(args, "page_size") and args.page_size:
         params["page_size"] = args.page_size
     data = _request("get", "/sub-tasks", args.key, params=params)
     items = _extract_items(data)
@@ -239,9 +262,9 @@ def cmd_sub_task_get(args):
 def cmd_sub_task_mine(args):
     """查看我的子任务"""
     params = {}
-    if hasattr(args, 'page') and args.page:
+    if hasattr(args, "page") and args.page:
         params["page"] = args.page
-    if hasattr(args, 'page_size') and args.page_size:
+    if hasattr(args, "page_size") and args.page_size:
         params["page_size"] = args.page_size
     data = _request("get", "/sub-tasks/mine", args.key, params=params)
     items = _extract_items(data)
@@ -255,9 +278,9 @@ def cmd_sub_task_mine(args):
 def cmd_sub_task_available(args):
     """查看可认领的子任务"""
     params = {}
-    if hasattr(args, 'page') and args.page:
+    if hasattr(args, "page") and args.page:
         params["page"] = args.page
-    if hasattr(args, 'page_size') and args.page_size:
+    if hasattr(args, "page_size") and args.page_size:
         params["page_size"] = args.page_size
     data = _request("get", "/sub-tasks/available", args.key, params=params)
     items = _extract_items(data)
@@ -267,17 +290,20 @@ def cmd_sub_task_available(args):
     for st in items:
         print(f"  [{st['priority']}] {st['name']} (ID:{st['id']})")
 
+
 def cmd_sub_task_latest(args):
     """获取某任务下分配给我的最新子任务"""
-    data = _request("get", "/sub-tasks/latest", args.key, params={"task_id": args.task_id})
+    data = _request(
+        "get", "/sub-tasks/latest", args.key, params={"task_id": args.task_id}
+    )
     if data:
         print(f"  [{data['status']}] {data['name']}")
         print(f"  ID: {data['id']}")
-        if data.get('description'):
+        if data.get("description"):
             print(f"  描述: {data['description']}")
-        if data.get('deliverable'):
+        if data.get("deliverable"):
             print(f"  交付物: {data['deliverable']}")
-        if data.get('acceptance'):
+        if data.get("acceptance"):
             print(f"  验收标准: {data['acceptance']}")
 
 
@@ -290,11 +316,11 @@ def cmd_sub_task_claim(args):
 def cmd_sub_task_start(args):
     """开始执行"""
     body = {}
-    if hasattr(args, 'session') and args.session:
+    if hasattr(args, "session") and args.session:
         body["session_id"] = args.session
     data = _request("post", f"/sub-tasks/{args.id}/start", args.key, json=body)
     print(f"✅ 已开始: {data['name']}")
-    if data.get('current_session_id'):
+    if data.get("current_session_id"):
         print(f"   会话: {data['current_session_id']}")
 
 
@@ -336,22 +362,31 @@ def cmd_sub_task_block(args):
 
 def cmd_sub_task_session(args):
     """更新子任务的会话 ID"""
-    data = _request("post", f"/sub-tasks/{args.id}/session", args.key,
-                     json={"session_id": args.session_id})
+    data = _request(
+        "post",
+        f"/sub-tasks/{args.id}/session",
+        args.key,
+        json={"session_id": args.session_id},
+    )
     print(f"✅ 会话已更新: {data['name']}")
     print(f"   会话 ID: {data['current_session_id']}")
 
 
 def cmd_sub_task_reassign(args):
     """重新分配子任务"""
-    data = _request("post", f"/sub-tasks/{args.id}/reassign", args.key,
-                    json={"agent_id": args.agent_id})
+    data = _request(
+        "post",
+        f"/sub-tasks/{args.id}/reassign",
+        args.key,
+        json={"agent_id": args.agent_id},
+    )
     print(f"✅ 已重新分配给 Agent {args.agent_id}")
 
 
 # ============================================================
 # 审查记录
 # ============================================================
+
 
 def cmd_review_create(args):
     """提交审查记录"""
@@ -364,7 +399,9 @@ def cmd_review_create(args):
     }
     data = _request("post", "/review-records", args.key, json=body)
     emoji = "✅" if args.result == "approved" else "❌"
-    print(f"{emoji} 审查已提交 (round {data['round']}): {args.result}, 评分 {args.score}/5")
+    print(
+        f"{emoji} 审查已提交 (round {data['round']}): {args.result}, 评分 {args.score}/5"
+    )
 
 
 def cmd_review_list(args):
@@ -372,15 +409,17 @@ def cmd_review_list(args):
     params = {}
     if args.sub_task_id:
         params["sub_task_id"] = args.sub_task_id
-    if hasattr(args, 'page') and args.page:
+    if hasattr(args, "page") and args.page:
         params["page"] = args.page
-    if hasattr(args, 'page_size') and args.page_size:
+    if hasattr(args, "page_size") and args.page_size:
         params["page_size"] = args.page_size
     data = _request("get", "/review-records", args.key, params=params)
     items = _extract_items(data)
     for r in items:
         emoji = "✅" if r["result"] == "approved" else "❌"
-        print(f"  {emoji} Round {r['round']}: {r['result']} (评分 {r['score']}/5) {r.get('comment', '')}")
+        print(
+            f"  {emoji} Round {r['round']}: {r['result']} (评分 {r['score']}/5) {r.get('comment', '')}"
+        )
 
 
 def cmd_review_get(args):
@@ -393,6 +432,7 @@ def cmd_review_get(args):
 # 积分
 # ============================================================
 
+
 def cmd_score_me(args):
     """查看我的积分"""
     data = _request("get", "/scores/me", args.key)
@@ -404,9 +444,9 @@ def cmd_score_me(args):
 def cmd_score_logs(args):
     """查看积分明细"""
     params = {}
-    if hasattr(args, 'page') and args.page:
+    if hasattr(args, "page") and args.page:
         params["page"] = args.page
-    if hasattr(args, 'page_size') and args.page_size:
+    if hasattr(args, "page_size") and args.page_size:
         params["page_size"] = args.page_size
     data = _request("get", "/scores/me/logs", args.key, params=params)
     items = _extract_items(data)
@@ -422,7 +462,9 @@ def cmd_score_leaderboard(args):
     """积分排行榜"""
     data = _request("get", "/scores/leaderboard", args.key)
     for item in data:
-        print(f"  #{item['rank']} {item['agent_name']} ({item['role']}): {item['total_score']}分")
+        print(
+            f"  #{item['rank']} {item['agent_name']} ({item['role']}): {item['total_score']}分"
+        )
 
 
 def cmd_score_adjust(args):
@@ -442,6 +484,7 @@ def cmd_score_adjust(args):
 # ============================================================
 # 活动日志
 # ============================================================
+
 
 def cmd_log_create(args):
     """写入活动日志"""
@@ -492,17 +535,135 @@ def cmd_log_list(args):
 # 通知配置
 # ============================================================
 
+
 def cmd_notification(args):
     """查看通知配置"""
-    data = _request("get", "/config/notification", args.key)  # → /api/config/notification
+    data = _request(
+        "get", "/config/notification", args.key
+    )  # → /api/config/notification
     print(f"  启用: {data['enabled']}")
     print(f"  渠道: {', '.join(data['channels']) if data['channels'] else '未配置'}")
     print(f"  事件: {', '.join(data['events']) if data['events'] else '未配置'}")
 
 
 # ============================================================
+# GitHub 集成
+# ============================================================
+
+
+def cmd_github_status(args):
+    data = _request("get", f"/tasks/{args.task_id}/github/status", args.key)
+    print(f"  GitHub 集成: {'已启用' if data.get('github_enabled') else '未启用'}")
+    print(f"  仓库地址: {data.get('repo_url') or '未创建'}")
+    print(f"  仓库名: {data.get('repo_name') or '-'}")
+    print(f"  方案已生成: {'是' if data.get('plan_generated') else '否'}")
+    print(f"  README 已生成: {'是' if data.get('readme_generated') else '否'}")
+    print(f"  README 已推送: {'是' if data.get('readme_pushed') else '否'}")
+    print(f"  方案重试次数: {data.get('plan_retry_count', 0)}/3")
+    print(f"  README 重试次数: {data.get('readme_retry_count', 0)}/3")
+
+
+def cmd_github_generate_plan(args):
+    task = _request("get", f"/tasks/{args.task_id}", args.key)
+    req = {
+        "task_name": task.get("name", ""),
+        "task_description": task.get("description", ""),
+        "task_type": task.get("type", "once"),
+    }
+    data = _request(
+        "post", f"/tasks/{args.task_id}/github/generate-plan", args.key, json=req
+    )
+    if data.get("success"):
+        print("✅ 获取方案提示词成功")
+        print("\n" + "=" * 40)
+        print("AI 提示词：")
+        print("=" * 40)
+        print(data.get("prompt", ""))
+    else:
+        print(f"❌ 获取失败: {data.get('detail', '未知错误')}")
+
+
+def cmd_github_submit_plan(args):
+    req = {"content": args.content}
+    data = _request(
+        "post", f"/tasks/{args.task_id}/github/submit-plan", args.key, json=req
+    )
+    if data.get("success"):
+        print("✅ 方案提交成功，验证通过！")
+    else:
+        error = data.get("error", data.get("detail", "未知错误"))
+        attempt = data.get("attempt", 0)
+        max_attempts = data.get("max_attempts", 3)
+        if attempt >= max_attempts:
+            print(f"❌ 方案验证失败次数过多，已通知管理员")
+        else:
+            print(f"❌ 方案验证失败: {error}")
+            print(f"   重试次数: {attempt}/{max_attempts}")
+        sys.exit(1)
+
+
+def cmd_github_create_repo(args):
+    data = _request("post", f"/tasks/{args.task_id}/github/create-repo", args.key)
+    if data.get("success"):
+        print(f"✅ GitHub 仓库创建成功！")
+        print(f"  仓库地址: {data.get('repo_url')}")
+    else:
+        print(f"❌ 创建失败: {data.get('detail', data.get('error', '未知错误'))}")
+        sys.exit(1)
+
+
+def cmd_github_generate_readme(args):
+    task = _request("get", f"/tasks/{args.task_id}", args.key)
+    req = {
+        "task_name": task.get("name", ""),
+        "task_description": task.get("description", ""),
+        "plan_content": task.get("plan_content", ""),
+    }
+    data = _request(
+        "post", f"/tasks/{args.task_id}/github/generate-readme", args.key, json=req
+    )
+    if data.get("success"):
+        print("✅ 获取 README 提示词成功")
+        print("\n" + "=" * 40)
+        print("AI 提示词：")
+        print("=" * 40)
+        print(data.get("prompt", ""))
+    else:
+        print(f"❌ 获取失败: {data.get('detail', '未知错误')}")
+
+
+def cmd_github_submit_readme(args):
+    req = {"content": args.content}
+    data = _request(
+        "post", f"/tasks/{args.task_id}/github/submit-readme", args.key, json=req
+    )
+    if data.get("success"):
+        print("✅ README 提交成功，验证通过！")
+    else:
+        error = data.get("error", data.get("detail", "未知错误"))
+        attempt = data.get("attempt", 0)
+        max_attempts = data.get("max_attempts", 3)
+        if attempt >= max_attempts:
+            print(f"❌ README 验证失败次数过多，已通知管理员")
+        else:
+            print(f"❌ README 验证失败: {error}")
+            print(f"   重试次数: {attempt}/{max_attempts}")
+        sys.exit(1)
+
+
+def cmd_github_push_readme(args):
+    data = _request("post", f"/tasks/{args.task_id}/github/push-readme", args.key)
+    if data.get("success"):
+        print("✅ README 推送成功！")
+    else:
+        print(f"❌ 推送失败: {data.get('detail', '未知错误')}")
+        sys.exit(1)
+
+
+# ============================================================
 # Agent 查询
 # ============================================================
+
 
 def cmd_agent_list(args):
     """查看 Agent 列表"""
@@ -511,13 +672,16 @@ def cmd_agent_list(args):
         params["role"] = args.role
     data = _request("get", "/agents", args.key, params=params)
     for a in data:
-        desc = f" — {a['description']}" if a.get('description') else ""
-        print(f"  [{a['status']}] {a['name']} ({a['role']}) 积分:{a['total_score']}{desc}")
+        desc = f" — {a['description']}" if a.get("description") else ""
+        print(
+            f"  [{a['status']}] {a['name']} ({a['role']}) 积分:{a['total_score']}{desc}"
+        )
 
 
 # ============================================================
 # 自更新
 # ============================================================
+
 
 def cmd_update(args):
     """自动更新 task-cli.py 和 SKILL.md"""
@@ -556,6 +720,7 @@ def cmd_update(args):
 # 主入口
 # ============================================================
 
+
 def main():
     parser = argparse.ArgumentParser(
         description="OpenMOSS 任务调度 CLI 工具",
@@ -567,7 +732,9 @@ def main():
     # --- register ---
     p = subparsers.add_parser("register", help="注册 Agent")
     p.add_argument("--name", required=True, help="Agent 名称")
-    p.add_argument("--role", required=True, choices=["planner", "executor", "reviewer", "patrol"])
+    p.add_argument(
+        "--role", required=True, choices=["planner", "executor", "reviewer", "patrol"]
+    )
     p.add_argument("--token", required=True, help="注册令牌")
     p.add_argument("--description", help="职责描述")
     p.set_defaults(func=cmd_register)
@@ -747,7 +914,9 @@ def main():
     p = score_sub.add_parser("leaderboard", help="积分排行榜")
     p.set_defaults(func=cmd_score_leaderboard)
 
-    p = score_sub.add_parser("adjust", help="手动调整 Agent 积分（仅 reviewer/planner）")
+    p = score_sub.add_parser(
+        "adjust", help="手动调整 Agent 积分（仅 reviewer/planner）"
+    )
     p.add_argument("agent_id", help="目标 Agent ID")
     p.add_argument("delta", type=int, help="积分变化量（正数加分，负数扣分）")
     p.add_argument("reason", help="调整原因")
@@ -785,6 +954,40 @@ def main():
     p = subparsers.add_parser("agents", help="查看 Agent 列表")
     p.add_argument("--role", help="按角色过滤")
     p.set_defaults(func=cmd_agent_list)
+
+    # --- github ---
+    github_p = subparsers.add_parser("github", help="GitHub 集成")
+    github_sub = github_p.add_subparsers(dest="github_cmd")
+
+    p = github_sub.add_parser("status", help="查看 GitHub 集成状态")
+    p.add_argument("task_id", help="任务 ID")
+    p.set_defaults(func=cmd_github_status)
+
+    p = github_sub.add_parser("generate-plan", help="AI 生成项目方案（返回提示词）")
+    p.add_argument("task_id", help="任务 ID")
+    p.set_defaults(func=cmd_github_generate_plan)
+
+    p = github_sub.add_parser("submit-plan", help="提交方案内容")
+    p.add_argument("task_id", help="任务 ID")
+    p.add_argument("--content", required=True, help="方案内容")
+    p.set_defaults(func=cmd_github_submit_plan)
+
+    p = github_sub.add_parser("create-repo", help="创建 GitHub 仓库")
+    p.add_argument("task_id", help="任务 ID")
+    p.set_defaults(func=cmd_github_create_repo)
+
+    p = github_sub.add_parser("generate-readme", help="AI 生成 README（返回提示词）")
+    p.add_argument("task_id", help="任务 ID")
+    p.set_defaults(func=cmd_github_generate_readme)
+
+    p = github_sub.add_parser("submit-readme", help="提交 README 内容")
+    p.add_argument("task_id", help="任务 ID")
+    p.add_argument("--content", required=True, help="README 内容")
+    p.set_defaults(func=cmd_github_submit_readme)
+
+    p = github_sub.add_parser("push-readme", help="推送 README 到 GitHub")
+    p.add_argument("task_id", help="任务 ID")
+    p.set_defaults(func=cmd_github_push_readme)
 
     # 解析
     args = parser.parse_args()

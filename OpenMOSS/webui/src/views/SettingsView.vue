@@ -26,6 +26,11 @@ const feedRetentionDays = ref(7)
 const workspaceRoot = ref('')
 const externalUrl = ref('')
 
+// GitHub 配置
+const githubEnabled = ref(false)
+const githubToken = ref('')
+const githubOrg = ref('')
+
 // 密码修改
 const showPasswordForm = ref(false)
 const oldPassword = ref('')
@@ -54,6 +59,11 @@ onMounted(async () => {
         feedRetentionDays.value = (cfg.webui?.feed_retention_days as number) ?? 7
         workspaceRoot.value = (cfg.workspace?.root as string) || ''
         externalUrl.value = (cfg.server?.external_url as string) || ''
+        
+        // GitHub 配置
+        githubEnabled.value = (cfg.github?.enabled as boolean) ?? false
+        githubToken.value = (cfg.github?.token as string) || ''
+        githubOrg.value = (cfg.github?.org as string) || ''
     } catch (e) {
         console.error('加载配置失败', e)
         showMessage('加载配置失败', 'error')
@@ -112,6 +122,15 @@ async function saveSection(section: string) {
                 break
             case 'server':
                 data = { server: { external_url: externalUrl.value } }
+                break
+            case 'github':
+                data = {
+                    github: {
+                        enabled: githubEnabled.value,
+                        token: githubToken.value,
+                        org: githubOrg.value,
+                    }
+                }
                 break
         }
 
@@ -186,8 +205,9 @@ async function copyText(text: string) {
 
         <template v-else>
             <Tabs default-value="project" class="w-full">
-                <TabsList class="grid w-full grid-cols-4">
+                <TabsList class="grid w-full grid-cols-5">
                     <TabsTrigger value="project">项目</TabsTrigger>
+                    <TabsTrigger value="github">GitHub</TabsTrigger>
                     <TabsTrigger value="security">安全</TabsTrigger>
                     <TabsTrigger value="notification">通知</TabsTrigger>
                     <TabsTrigger value="display">显示</TabsTrigger>
@@ -255,7 +275,68 @@ async function copyText(text: string) {
                 </TabsContent>
 
                 <!-- ============================================================ -->
-                <!-- Tab 2: 安全设置 -->
+                <!-- Tab 2: GitHub 设置 -->
+                <!-- ============================================================ -->
+                <TabsContent value="github">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle class="text-base">GitHub 集成</CardTitle>
+                            <CardDescription>配置 GitHub 仓库访问权限，用于任务方案和 README 管理</CardDescription>
+                        </CardHeader>
+                        <CardContent class="space-y-4">
+                            <!-- 启用开关 -->
+                            <div class="flex items-center justify-between">
+                                <div class="space-y-0.5">
+                                    <Label>启用 GitHub 集成</Label>
+                                    <p class="text-xs text-muted-foreground">开启后可为任务自动创建 GitHub 仓库</p>
+                                </div>
+                                <Switch v-model:checked="githubEnabled" />
+                            </div>
+
+                            <Separator />
+
+                            <!-- GitHub Token -->
+                            <div class="space-y-2">
+                                <Label for="github-token">GitHub Token</Label>
+                                <Input 
+                                    id="github-token" 
+                                    v-model="githubToken" 
+                                    type="password"
+                                    placeholder="ghp_xxxxxxxxxxxx" 
+                                    :disabled="!githubEnabled"
+                                />
+                                <p class="text-xs text-muted-foreground">
+                                    需要 repo 权限的 Personal Access Token
+                                </p>
+                            </div>
+
+                            <!-- GitHub Org -->
+                            <div class="space-y-2">
+                                <Label for="github-org">组织名（可选）</Label>
+                                <Input 
+                                    id="github-org" 
+                                    v-model="githubOrg" 
+                                    placeholder="不填则使用个人仓库" 
+                                    :disabled="!githubEnabled"
+                                />
+                                <p class="text-xs text-muted-foreground">
+                                    如果不填，将使用与 Token 关联的个人账户创建仓库
+                                </p>
+                            </div>
+
+                            <div class="flex justify-end gap-2">
+                                <Button size="sm" @click="saveSection('github')" :disabled="!!saving">
+                                    <Loader2 v-if="saving === 'github'" class="mr-1 h-3.5 w-3.5 animate-spin" />
+                                    <Save v-else class="mr-1 h-3.5 w-3.5" />
+                                    {{ saving === 'github' ? '保存中...' : '保存 GitHub 配置' }}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <!-- ============================================================ -->
+                <!-- Tab 3: 安全设置 -->
                 <!-- ============================================================ -->
                 <TabsContent value="security">
                     <Card>
