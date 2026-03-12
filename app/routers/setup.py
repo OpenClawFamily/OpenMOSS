@@ -14,6 +14,7 @@ router = APIRouter(prefix="/setup", tags=["Setup"])
 
 class SetupStatusResponse(BaseModel):
     initialized: bool
+    has_external_url: bool = False
 
 
 class SetupInitializeRequest(BaseModel):
@@ -24,6 +25,7 @@ class SetupInitializeRequest(BaseModel):
     registration_token: Optional[str] = Field(None, description="Agent 注册令牌（不填则自动生成）")
     allow_registration: bool = Field(True, description="是否允许 Agent 自注册")
     notification: Optional[dict] = Field(None, description="通知配置")
+    external_url: Optional[str] = Field(None, description="服务外网访问地址（Agent 对接用）")
 
 
 class SetupInitializeResponse(BaseModel):
@@ -54,7 +56,10 @@ async def get_setup_status():
     if not config.is_initialized and _has_existing_data():
         config.mark_initialized()
 
-    return SetupStatusResponse(initialized=config.is_initialized)
+    return SetupStatusResponse(
+        initialized=config.is_initialized,
+        has_external_url=config.has_external_url,
+    )
 
 
 @router.post("/initialize", response_model=SetupInitializeResponse, summary="执行初始化")

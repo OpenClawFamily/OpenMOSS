@@ -18,6 +18,7 @@ class ConfigUpdateRequest(BaseModel):
     notification: Optional[dict] = Field(None, description="通知配置")
     webui: Optional[dict] = Field(None, description="WebUI 配置")
     workspace: Optional[dict] = Field(None, description="工作目录配置，如 {\"root\": \"/path\"}")
+    server: Optional[dict] = Field(None, description="服务配置，如 {\"external_url\": \"https://...\"}")
 
 
 class PasswordUpdateRequest(BaseModel):

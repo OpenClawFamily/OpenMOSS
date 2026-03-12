@@ -103,15 +103,22 @@ class AppConfig:
     def update(self, data: dict):
         """部分更新配置（合并更新 + 回写 YAML）
 
-        支持的顶级 key：project, agent, notification, webui, workspace
-        不支持更新：setup, admin.password, server, database
+        支持的顶级 key：project, agent, notification, webui, workspace, server
+        server 下仅允许更新 external_url（port/host 需手动改 config.yaml 后重启）
+        不支持更新：setup, admin.password, database
         """
-        ALLOWED_KEYS = {"project", "agent", "notification", "webui", "workspace"}
+        ALLOWED_KEYS = {"project", "agent", "notification", "webui", "workspace", "server"}
+        SERVER_ALLOWED_SUBKEYS = {"external_url"}
 
         with self._lock:
             for key, value in data.items():
                 if key not in ALLOWED_KEYS:
                     raise ValueError(f"不允许更新配置项: {key}")
+                # server 下做子字段白名单校验
+                if key == "server" and isinstance(value, dict):
+                    for sub_key in value:
+                        if sub_key not in SERVER_ALLOWED_SUBKEYS:
+                            raise ValueError(f"不允许通过 API 更新 server.{sub_key}，请手动修改 config.yaml")
                 if isinstance(value, dict) and isinstance(self._data.get(key), dict):
                     self._data[key].update(value)
                 else:
@@ -164,6 +171,26 @@ class AppConfig:
         return self._data.get("server", {}).get("host", "0.0.0.0")
 
     @property
+    def server_external_url(self) -> str:
+        """外网访问地址（用于 Agent 工具下载和对接）
+
+        如果未配置，兜底用 host:port 拼接（通常不可从外网访问）。
+        旧版部署无此字段时自动兜底，不会报错。
+        """
+        url = self._data.get("server", {}).get("external_url", "")
+        if not url:
+            host = self.server_host
+            if host == "0.0.0.0":
+                host = "127.0.0.1"  # 0.0.0.0 不是有效访问地址，兜底用 localhost
+            return f"http://{host}:{self.server_port}"
+        return url.rstrip("/")
+
+    @property
+    def has_external_url(self) -> bool:
+        """外网地址是否已配置（非空）"""
+        return bool(self._data.get("server", {}).get("external_url", ""))
+
+    @property
     def database_path(self) -> str:
         return self._data.get("database", {}).get("path", "./data/tasks.db")
 
@@ -201,6 +228,11 @@ class AppConfig:
     def feed_retention_days(self) -> int:
         """请求日志保留天数"""
         return self._data.get("webui", {}).get("feed_retention_days", 7)
+
+    @property
+    def cli_version(self) -> int:
+        """CLI 工具最新版本号（task-cli.py 自更新用）"""
+        return self._data.get("cli", {}).get("version", 1)
 
     @property
     def raw(self) -> dict:
@@ -251,6 +283,12 @@ class AppConfig:
             # 设置通知
             if data.get("notification"):
                 self._data["notification"] = data["notification"]
+
+            # 设置服务外网地址
+            if data.get("external_url"):
+                if "server" not in self._data:
+                    self._data["server"] = {}
+                self._data["server"]["external_url"] = data["external_url"]
 
             # 标记初始化完成
             self.mark_initialized()

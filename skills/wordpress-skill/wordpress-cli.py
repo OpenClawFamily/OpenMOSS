@@ -18,19 +18,18 @@ import requests
 # ============================================================
 # 配置：修改为你的 WordPress 站点信息
 # ============================================================
-WP_URL = "https://www.example.com"              # WordPress 站点地址（不含尾 /）
-WP_USER = "your_username"                            # WordPress 用户名
-WP_APP_PASSWORD = "xxxx xxxx xxxx xxxx xxxx xxxx"    # 应用密码
+WP_URL = "https://www.1m-reviews.com"          # WordPress 站点地址（不含尾 /）
+WP_USER = "1mreviews_admin"                          # WordPress 用户名
+WP_APP_PASSWORD = "UcFL VRpD 3lZc yQns KlZo tFtJ"    # 应用密码
 
 # API 基础地址
 API_BASE = f"{WP_URL}/wp-json/wp/v2"
 
-# 代理配置（取消注释并修改地址以启用代理）
-PROXIES = {}
-# PROXIES = {
-#     "http": "http://127.0.0.1:7890",
-#     "https": "http://127.0.0.1:7890",
-# }
+# 代理配置（留空则不使用代理）
+PROXIES = {
+    "http": "http://127.0.0.1:7890",
+    "https": "http://127.0.0.1:7890",
+}
 
 
 # ============================================================

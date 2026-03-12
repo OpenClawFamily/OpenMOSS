@@ -25,6 +25,12 @@ def create_rule(
     if scope == "sub_task" and not sub_task_id:
         raise ValueError("sub_task 级别规则必须指定 sub_task_id")
 
+    # 全局规则只允许一条
+    if scope == "global":
+        existing = db.query(Rule).filter(Rule.scope == "global").first()
+        if existing:
+            raise ValueError("全局规则已存在，请编辑现有规则而非新建")
+
     rule = Rule(
         id=str(uuid.uuid4()),
         scope=scope,

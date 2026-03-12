@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { setupApi } from '@/api/client'
 import {
   Sidebar,
   SidebarContent,
@@ -26,6 +27,7 @@ import {
   Trophy,
   ScrollText,
   FileSearch,
+  BookText,
   Settings,
   LogOut,
 } from 'lucide-vue-next'
@@ -35,6 +37,18 @@ const route = useRoute()
 const auth = useAuthStore()
 
 const showLogoutConfirm = ref(false)
+const showUrlMissing = ref(false)
+
+onMounted(async () => {
+  try {
+    const { data } = await setupApi.status()
+    if (data.initialized && !data.has_external_url) {
+      showUrlMissing.value = true
+    }
+  } catch {
+    // 静默失败
+  }
+})
 
 const menuItems = [
   { title: '仪表盘', icon: LayoutDashboard, path: '/dashboard' },
@@ -43,6 +57,7 @@ const menuItems = [
   { title: '积分排行', icon: Trophy, path: '/scores' },
   { title: '活动日志', icon: ScrollText, path: '/logs' },
   { title: '审查记录', icon: FileSearch, path: '/reviews' },
+  { title: '提示词管理', icon: BookText, path: '/prompts' },
   { title: '系统设置', icon: Settings, path: '/settings' },
 ]
 
@@ -127,6 +142,37 @@ function handleLogout() {
           <div class="mt-6 flex gap-3">
             <Button variant="outline" class="flex-1" @click="showLogoutConfirm = false">取消</Button>
             <Button variant="destructive" class="flex-1" @click="handleLogout">确认退出</Button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+
+  <!-- 服务地址未配置提示弹窗 -->
+  <Teleport to="body">
+    <Transition name="fade">
+      <div v-if="showUrlMissing" class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showUrlMissing = false" />
+        <div
+          class="relative z-10 w-full max-w-sm rounded-xl border bg-background p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+          <div class="space-y-2 text-center">
+            <div class="text-3xl mb-2">⚠️</div>
+            <h2 class="text-lg font-semibold">请配置服务访问地址</h2>
+            <p class="text-sm text-muted-foreground">
+              OpenMOSS 需要一个外网可访问的地址，用于：
+            </p>
+            <ul class="text-sm text-muted-foreground text-left ml-4 list-disc space-y-1">
+              <li>Agent 下载工具脚本</li>
+              <li>Agent 对接任务系统</li>
+              <li>生成 Agent 入驻 Prompt</li>
+            </ul>
+            <p class="text-xs text-muted-foreground mt-2">
+              示例：https://moss.example.com
+            </p>
+          </div>
+          <div class="mt-6 flex gap-3">
+            <Button variant="outline" class="flex-1" @click="showUrlMissing = false">稍后再说</Button>
+            <Button class="flex-1" @click="showUrlMissing = false; router.push('/settings')">前往设置</Button>
           </div>
         </div>
       </div>

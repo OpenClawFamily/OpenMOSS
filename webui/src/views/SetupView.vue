@@ -11,7 +11,7 @@ import { ChevronRight, ChevronLeft, Check, Copy, RefreshCw } from 'lucide-vue-ne
 
 // 向导步骤
 const currentStep = ref(0)
-const totalSteps = 4
+const totalSteps = 5
 const loading = ref(false)
 const error = ref('')
 const showRegistrationToken = ref(false)
@@ -39,6 +39,7 @@ const form = ref({
     projectName: 'OpenMOSS',
     workspaceRoot: '',
     registrationToken: generateToken(),
+    externalUrl: '',
     notificationChannels: '',
 })
 // Switch 状态独立声明（reka-ui Switch 对嵌套 ref 属性兼容性差）
@@ -95,7 +96,9 @@ const canProceed = computed(() => {
             return form.value.projectName.length > 0 && form.value.workspaceRoot.length > 0
         case 2:
             return form.value.registrationToken.length > 0
-        case 3:
+        case 3: // 服务地址（可跳过）
+            return true
+        case 4: // 通知（可跳过）
             return true
         default:
             return false
@@ -135,6 +138,7 @@ async function handleSubmit() {
             workspace_root: form.value.workspaceRoot,
             registration_token: form.value.registrationToken,
             allow_registration: allowRegistration.value,
+            external_url: form.value.externalUrl || undefined,
             notification: notificationEnabled.value ? {
                 enabled: true,
                 channels,
@@ -153,14 +157,15 @@ async function handleSubmit() {
 }
 
 function goToLogin() {
-    // 强制刷新以重新检查初始化状态
-    window.location.href = '/login'
+    // 初始化完成后跳转登录，带 from=setup 标记以便登录后跳转到提示词管理
+    window.location.href = '/login?from=setup'
 }
 
 const steps = [
     { title: '管理员密码', desc: '设置管理员登录密码' },
     { title: '项目信息', desc: '配置项目名称和工作目录' },
     { title: 'Agent 注册', desc: '设置 Agent 注册令牌' },
+    { title: '服务地址', desc: '配置 Agent 对接的服务访问地址' },
     { title: '通知渠道', desc: '配置消息通知（可跳过）' },
 ]
 </script>
@@ -216,6 +221,9 @@ const steps = [
                         Agent 注册时需要此令牌。你可以在「系统设置」中随时修改。
                     </p>
                 </div>
+                <p class="mt-3 text-xs text-muted-foreground text-center">
+                    登录后可在「提示词管理」中快速创建 Agent 提示词并对接。
+                </p>
                 <Button class="w-full" @click="goToLogin">
                     前往登录
                     <ChevronRight class="ml-1 h-4 w-4" />
@@ -308,8 +316,56 @@ const steps = [
                     </div>
                 </div>
 
-                <!-- Step 3: 通知 -->
+                <!-- Step 3: 服务地址 -->
                 <div v-if="currentStep === 3" class="space-y-4">
+                    <div class="space-y-2">
+                        <Label for="external-url">🌐 服务访问地址</Label>
+                        <Input id="external-url" v-model="form.externalUrl"
+                            placeholder="https://moss.example.com" />
+                    </div>
+
+                    <div class="rounded-lg border bg-muted/30 p-4 space-y-3">
+                        <div>
+                            <p class="text-sm font-medium">💡 这是什么？</p>
+                            <p class="text-xs text-muted-foreground mt-1">
+                                你的 AI Agent 需要通过这个地址来：
+                            </p>
+                            <ul class="text-xs text-muted-foreground mt-1 ml-4 list-disc space-y-0.5">
+                                <li>下载工作工具（task-cli.py）</li>
+                                <li>获取技能配置（SKILL.md）</li>
+                                <li>与任务系统通信、领取和提交任务</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium">📝 填写说明</p>
+                            <p class="text-xs text-muted-foreground mt-1">
+                                请填写本服务器可从外网访问的完整地址。服务默认端口为
+                                <code class="bg-muted px-1 py-0.5 rounded">6565</code>。
+                            </p>
+                            <div class="flex flex-col gap-1 mt-2">
+                                <div class="flex items-center gap-2">
+                                    <code class="text-xs bg-muted px-2 py-1 rounded">https://moss.example.com</code>
+                                    <span class="text-xs text-muted-foreground">← 使用反向代理（Nginx/Caddy）</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <code class="text-xs bg-muted px-2 py-1 rounded">http://123.45.67.89:6565</code>
+                                    <span class="text-xs text-muted-foreground">← 直接用 IP + 端口</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <code class="text-xs bg-muted px-2 py-1 rounded">http://127.0.0.1:6565</code>
+                                    <span class="text-xs text-muted-foreground">← 本地测试用</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-muted-foreground">
+                        ⏩ 还没准备好？可以跳过，稍后在「系统设置」中配置
+                    </p>
+                </div>
+
+                <!-- Step 4: 通知 -->
+                <div v-if="currentStep === 4" class="space-y-4">
                     <div class="flex items-center justify-between rounded-lg border p-3">
                         <div>
                             <Label>启用通知推送</Label>

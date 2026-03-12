@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 const router = useRouter()
+const route = useRoute()
 const auth = useAuthStore()
 
 const password = ref('')
@@ -23,7 +24,9 @@ async function handleLogin() {
     error.value = ''
     try {
         await auth.login(password.value)
-        router.push('/dashboard')
+        // 初始化完成后跳转提示词管理，否则跳转仪表盘
+        const target = route.query.from === 'setup' ? '/prompts' : '/dashboard'
+        router.push(target)
     } catch (e: unknown) {
         const err = e as { response?: { data?: { detail?: string } } }
         error.value = err.response?.data?.detail || '登录失败，请检查密码'

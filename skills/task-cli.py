@@ -15,7 +15,8 @@ import requests
 # ============================================================
 # 配置：修改为你的任务调度服务地址
 # ============================================================
-BASE_URL = "http://localhost:6565"
+BASE_URL = "http://192.168.31.128:6565"
+CLI_VERSION = 1  # CLI 版本号，更新后递增
 
 
 # ============================================================
@@ -98,8 +99,12 @@ def cmd_register(args):
 
 def cmd_rules(args):
     """获取规则"""
-    data = _request("get", "/rules", args.key)
+    data = _request("get", "/rules", args.key, params={"cli_version": CLI_VERSION})
     print(data.get("content", ""))
+    if data.get("update_available"):
+        print(f"\n⚠️ 工具更新可用 (v{CLI_VERSION} → v{data.get('latest_version', '?')})")
+        if data.get("update_instructions"):
+            print(data["update_instructions"])
 
 
 # ============================================================
@@ -511,6 +516,43 @@ def cmd_agent_list(args):
 
 
 # ============================================================
+# 自更新
+# ============================================================
+
+def cmd_update(args):
+    """自动更新 task-cli.py 和 SKILL.md"""
+    import pathlib
+
+    headers = _headers(args.key)
+
+    # 下载最新 CLI
+    print("⬇️  下载最新 task-cli.py ...")
+    try:
+        r = requests.get(f"{BASE_URL}/api/tools/cli", headers=headers)
+        if r.status_code == 200:
+            cli_path = pathlib.Path(__file__).resolve()
+            cli_path.write_text(r.text, encoding="utf-8")
+            print("✅ task-cli.py 已更新")
+        else:
+            print(f"❌ 下载失败 ({r.status_code}): {r.text[:200]}")
+    except Exception as e:
+        print(f"❌ 下载失败: {e}")
+
+    # 下载最新 SKILL.md
+    print("⬇️  下载最新 SKILL.md ...")
+    try:
+        r = requests.get(f"{BASE_URL}/api/agents/me/skill", headers=headers)
+        if r.status_code == 200:
+            skill_path = pathlib.Path(__file__).resolve().parent / "SKILL.md"
+            skill_path.write_text(r.text, encoding="utf-8")
+            print("✅ SKILL.md 已更新（API Key 已自动填入）")
+        else:
+            print(f"❌ 下载失败 ({r.status_code}): {r.text[:200]}")
+    except Exception as e:
+        print(f"❌ 下载失败: {e}")
+
+
+# ============================================================
 # 主入口
 # ============================================================
 
@@ -533,6 +575,10 @@ def main():
     # --- rules ---
     p = subparsers.add_parser("rules", help="获取规则提示词")
     p.set_defaults(func=cmd_rules)
+
+    # --- update ---
+    p = subparsers.add_parser("update", help="自动更新 CLI 工具和 SKILL.md")
+    p.set_defaults(func=cmd_update)
 
     # --- task ---
     task_p = subparsers.add_parser("task", help="任务管理")

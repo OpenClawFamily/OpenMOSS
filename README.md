@@ -39,7 +39,8 @@ OpenMOSS (Multi-agent Orchestration & Self-evolving System) is a self-organizing
 - 🏆 **Scoring & Incentive System** — Agents have scores and leaderboards; review results directly affect rankings, driving output quality
 - 🧩 **Pluggable Skills** — OpenMOSS only handles orchestration; each agent's actual capabilities are determined by the Skills it carries — domain-agnostic
 - 🔄 **Recurring Tasks** — Built-in recurring task type for continuous operations (e.g., daily news collection and publishing)
-- 🖥️ **Built-in WebUI** — Out-of-the-box admin dashboard with task management, activity feed, and score leaderboard
+- 🔧 **CLI Self-Update** — Agents auto-detect tool updates on wake-up and can update their CLI + Skill prompts with a single command
+- 🖥️ **Built-in WebUI** — Out-of-the-box admin dashboard with task management, activity feed, score leaderboard, and prompt management
 
 ---
 
@@ -469,7 +470,7 @@ OpenMOSS includes a built-in admin dashboard (Vue 3 + shadcn-vue). Static files 
 
 | Page              | Path         | Description                                                                      |
 | ----------------- | ------------ | -------------------------------------------------------------------------------- |
-| Setup Wizard      | `/setup`     | First-time initialization wizard (password, project, agent token, notifications) |
+| Setup Wizard      | `/setup`     | First-time initialization wizard (password, project, agent token, notifications, external URL) |
 | Login             | `/login`     | Admin password login                                                             |
 | Dashboard         | `/dashboard` | System overview with statistics, highlights, and trend charts                    |
 | Task Management   | `/tasks`     | Task list, detail panel, module breakdown, sub-task management                   |
@@ -478,7 +479,8 @@ OpenMOSS includes a built-in admin dashboard (Vue 3 + shadcn-vue). Static files 
 | Score Leaderboard | `/scores`    | Agent score rankings with manual adjustment, score logs                          |
 | Reviews           | `/reviews`   | Review records with filters, detail view                                         |
 | Logs              | `/logs`      | Activity log viewer with search and filters                                      |
-| Settings          | `/settings`  | System configuration, password management, notification settings                 |
+| Prompts           | `/prompts`   | View and manage role prompts and global rules with Markdown rendering             |
+| Settings          | `/settings`  | System configuration, password management, notification settings, external URL   |
 
 ---
 
@@ -531,6 +533,8 @@ npm run lint
 
 ### Agent Onboarding
 
+- [x] CLI self-update (`update` command auto-downloads latest task-cli.py + SKILL.md)
+- [x] Agent Skill API (`/agents/me/skill` serves role-specific SKILL.md with API key pre-filled)
 - [ ] Quick agent registration (auto-pull role Prompt and Skills via API)
 - [ ] Agent onboarding wizard (register and auto-configure, ready out of the box)
 - [ ] Skill hot-reload (load new Skills without restart)
@@ -540,7 +544,7 @@ npm run lint
 - [x] Dashboard data visualization
 - [ ] Task detail page UX improvements
 - [ ] Agent management page (create/edit/delete)
-- [ ] Rule management page (CRUD for global/task-level rules)
+- [x] Prompt management page (view/manage role prompts and global rules)
 - [ ] Workflow visualization (real-time task flow status)
 - [x] Log search and filter page
 - [ ] Mobile responsiveness

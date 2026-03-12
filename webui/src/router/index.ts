@@ -67,6 +67,11 @@ const router = createRouter({
           component: () => import('@/views/ReviewsView.vue'),
         },
         {
+          path: 'prompts',
+          name: 'prompts',
+          component: () => import('@/views/PromptsView.vue'),
+        },
+        {
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/SettingsView.vue'),

@@ -137,3 +137,31 @@ async def update_status(
         raise HTTPException(status_code=400, detail=str(e))
 
     return agent
+
+
+# ============================================================
+# Agent 获取自己的 SKILL.md（API Key 已自动填入）
+# ============================================================
+
+@router.get("/me/skill", summary="获取角色对应的 SKILL.md")
+async def get_my_skill(
+    agent: Agent = Depends(get_current_agent),
+):
+    """根据 Agent 角色返回对应的 SKILL.md，`<注册后填入>` 自动替换为实际 API Key。"""
+    from pathlib import Path
+    from fastapi.responses import PlainTextResponse
+
+    role = agent.role
+    skill_dir = Path(__file__).resolve().parents[2] / "skills" / f"task-{role}-skill"
+    skill_path = skill_dir / "SKILL.md"
+
+    if not skill_path.exists():
+        raise HTTPException(status_code=404, detail=f"未找到 {role} 角色的 SKILL.md")
+
+    content = skill_path.read_text(encoding="utf-8")
+
+    # 替换 API Key 占位符
+    content = content.replace("<注册后填入>", agent.api_key)
+
+    return PlainTextResponse(content, media_type="text/plain; charset=utf-8")
+

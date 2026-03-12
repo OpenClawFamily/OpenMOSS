@@ -23,12 +23,14 @@ from app.routers import (
     agents,
     feed,
     logs,
+    prompts,
     review_records,
     rules,
     scores,
     setup,
     sub_tasks,
     tasks,
+    tools,
 )
 from app.middleware.request_logger import RequestLoggerMiddleware
 
@@ -146,6 +148,8 @@ app.include_router(review_records.router, prefix=API_PREFIX)
 app.include_router(scores.router, prefix=API_PREFIX)
 app.include_router(logs.router, prefix=API_PREFIX)
 app.include_router(feed.router, prefix=API_PREFIX)
+app.include_router(prompts.router, prefix=API_PREFIX)
+app.include_router(tools.router, prefix=API_PREFIX)
 app.include_router(setup.router, prefix=API_PREFIX)
 
 

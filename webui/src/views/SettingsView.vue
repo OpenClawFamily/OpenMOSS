@@ -24,6 +24,7 @@ const notificationEvents = ref<string[]>([])
 const publicFeed = ref(false)
 const feedRetentionDays = ref(7)
 const workspaceRoot = ref('')
+const externalUrl = ref('')
 
 // 密码修改
 const showPasswordForm = ref(false)
@@ -52,6 +53,7 @@ onMounted(async () => {
         publicFeed.value = (cfg.webui?.public_feed as boolean) ?? false
         feedRetentionDays.value = (cfg.webui?.feed_retention_days as number) ?? 7
         workspaceRoot.value = (cfg.workspace?.root as string) || ''
+        externalUrl.value = (cfg.server?.external_url as string) || ''
     } catch (e) {
         console.error('加载配置失败', e)
         showMessage('加载配置失败', 'error')
@@ -107,6 +109,9 @@ async function saveSection(section: string) {
                 break
             case 'workspace':
                 data = { workspace: { root: workspaceRoot.value } }
+                break
+            case 'server':
+                data = { server: { external_url: externalUrl.value } }
                 break
         }
 
@@ -207,11 +212,42 @@ async function copyText(text: string) {
                                 <Input id="s-workspace" v-model="workspaceRoot" placeholder="/path/to/workspace" />
                                 <p class="text-xs text-muted-foreground">Agent 产出物的根目录路径</p>
                             </div>
-                            <div class="flex justify-end">
+
+                            <Separator />
+
+                            <div class="space-y-2">
+                                <Label for="s-external-url">服务访问地址</Label>
+                                <Input id="s-external-url" v-model="externalUrl" placeholder="https://moss.example.com" />
+                                <p class="text-xs text-muted-foreground">
+                                    Agent 通过此地址下载工具脚本（task-cli.py）和技能配置（SKILL.md），并与任务系统通信。
+                                    服务默认端口为 <code class="bg-muted px-1 py-0.5 rounded">6565</code>。
+                                </p>
+                                <div class="flex flex-col gap-1 mt-1">
+                                    <div class="flex items-center gap-2">
+                                        <code class="text-xs bg-muted px-2 py-1 rounded">https://moss.example.com</code>
+                                        <span class="text-xs text-muted-foreground">← 反向代理</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <code class="text-xs bg-muted px-2 py-1 rounded">http://123.45.67.89:6565</code>
+                                        <span class="text-xs text-muted-foreground">← IP + 端口</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <code class="text-xs bg-muted px-2 py-1 rounded">http://127.0.0.1:6565</code>
+                                        <span class="text-xs text-muted-foreground">← 本地测试</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-end gap-2">
+                                <Button size="sm" variant="outline" @click="saveSection('server')" :disabled="!!saving">
+                                    <Loader2 v-if="saving === 'server'" class="mr-1 h-3.5 w-3.5 animate-spin" />
+                                    <Save v-else class="mr-1 h-3.5 w-3.5" />
+                                    {{ saving === 'server' ? '保存中...' : '保存访问地址' }}
+                                </Button>
                                 <Button size="sm" @click="saveSection('project')" :disabled="!!saving">
                                     <Loader2 v-if="saving === 'project'" class="mr-1 h-3.5 w-3.5 animate-spin" />
                                     <Save v-else class="mr-1 h-3.5 w-3.5" />
-                                    {{ saving === 'project' ? '保存中...' : '保存' }}
+                                    {{ saving === 'project' ? '保存中...' : '保存项目设置' }}
                                 </Button>
                             </div>
                         </CardContent>

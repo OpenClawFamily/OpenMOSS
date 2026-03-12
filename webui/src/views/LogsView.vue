@@ -46,7 +46,7 @@ const expandedIds = reactive(new Set<string>())
 const actionOptions = [
     { value: 'all', label: '全部类型' },
     { value: 'plan', label: '规划' },
-    { value: 'coding', label: '编码' },
+    { value: 'coding', label: '执行' },
     { value: 'delivery', label: '交付' },
     { value: 'review', label: '审查' },
     { value: 'patrol', label: '巡查' },
@@ -62,7 +62,7 @@ function createEmptyPage<T = unknown>(): AdminPageResponse<T> {
 
 function formatAction(action: string) {
     return ({
-        plan: '规划', coding: '编码', delivery: '交付', review: '审查',
+        plan: '规划', coding: '执行', delivery: '交付', review: '审查',
         patrol: '巡查', reflection: '自省', blocked: '阻塞',
     } as Record<string, string>)[action] ?? action
 }
