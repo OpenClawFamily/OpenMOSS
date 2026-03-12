@@ -1,6 +1,7 @@
 """
 子任务业务逻辑 — 含状态机校验
 """
+
 import uuid
 from datetime import datetime
 from sqlalchemy.orm import Session
@@ -13,14 +14,14 @@ from app.models.agent import Agent
 
 # 状态机：合法的状态转移
 VALID_TRANSITIONS = {
-    "pending":      ["assigned"],
-    "assigned":     ["in_progress", "pending"],      # 可退回 pending
-    "in_progress":  ["review"],
-    "review":       ["done", "rework"],
-    "rework":       ["in_progress"],
-    "blocked":      ["pending"],                     # 巡查标记后，规划师重新分配
-    "done":         [],                              # 终态
-    "cancelled":    [],                              # 终态
+    "pending": ["assigned"],
+    "assigned": ["in_progress", "pending"],  # 可退回 pending
+    "in_progress": ["review"],
+    "review": ["done", "rework"],
+    "rework": ["in_progress"],
+    "blocked": ["pending"],  # 巡查标记后，规划师重新分配
+    "done": [],  # 终态
+    "cancelled": [],  # 终态
 }
 
 
@@ -102,7 +103,9 @@ def get_sub_task(db: Session, sub_task_id: str) -> SubTask:
     return db.query(SubTask).filter(SubTask.id == sub_task_id).first()
 
 
-def _change_status(db: Session, sub_task_id: str, new_status: str, auto_commit: bool = True, **kwargs) -> SubTask:
+def _change_status(
+    db: Session, sub_task_id: str, new_status: str, auto_commit: bool = True, **kwargs
+) -> SubTask:
     """内部方法：状态转移（含校验）"""
     sub_task = db.query(SubTask).filter(SubTask.id == sub_task_id).first()
     if not sub_task:
@@ -137,10 +140,15 @@ def _change_status(db: Session, sub_task_id: str, new_status: str, auto_commit: 
 # 对外的状态操作方法
 # ============================================================
 
-def claim_sub_task(db: Session, sub_task_id: str, agent_id: str, session_id: str = None) -> SubTask:
+
+def claim_sub_task(
+    db: Session, sub_task_id: str, agent_id: str, session_id: str = None
+) -> SubTask:
     """认领子任务：pending → assigned"""
     return _change_status(
-        db, sub_task_id, "assigned",
+        db,
+        sub_task_id,
+        "assigned",
         assigned_agent=agent_id,
         current_session_id=session_id,
     )
@@ -171,12 +179,16 @@ def submit_sub_task(db: Session, sub_task_id: str) -> SubTask:
     return _change_status(db, sub_task_id, "review")
 
 
-def complete_sub_task(db: Session, sub_task_id: str, auto_commit: bool = True) -> SubTask:
+def complete_sub_task(
+    db: Session, sub_task_id: str, auto_commit: bool = True
+) -> SubTask:
     """审查通过：review → done"""
     return _change_status(db, sub_task_id, "done", auto_commit=auto_commit)
 
 
-def rework_sub_task(db: Session, sub_task_id: str, rework_agent: str = None, auto_commit: bool = True) -> SubTask:
+def rework_sub_task(
+    db: Session, sub_task_id: str, rework_agent: str = None, auto_commit: bool = True
+) -> SubTask:
     """驳回返工：review → rework"""
     sub_task = db.query(SubTask).filter(SubTask.id == sub_task_id).first()
     if not sub_task:
@@ -258,7 +270,9 @@ def update_sub_task(
     if not sub_task:
         raise ValueError(f"子任务 {sub_task_id} 不存在")
     if sub_task.status not in ("pending", "assigned"):
-        raise ValueError(f"子任务状态为 {sub_task.status}，只有 pending/assigned 状态可编辑")
+        raise ValueError(
+            f"子任务状态为 {sub_task.status}，只有 pending/assigned 状态可编辑"
+        )
 
     if name is not None:
         sub_task.name = name
@@ -288,3 +302,44 @@ def cancel_sub_task(db: Session, sub_task_id: str) -> SubTask:
     db.commit()
     db.refresh(sub_task)
     return sub_task
+
+
+def reset_stuck_tasks(db: Session, timeout_minutes: int = 30) -> int:
+    """
+    重置超时卡住的任务：将 in_progress 状态超过 timeout_minutes 分钟的任务重置为 pending
+
+    这是为了处理以下场景：
+    1. Agent 认领任务后开始执行 (in_progress)
+    2. 由于 API rate limit 或其他原因，Agent 无法完成任务
+    3. 任务永远卡在 in_progress 状态
+    4. 其他 Agent 无法认领新任务
+
+    此函数会：
+    - 查找 in_progress 状态超过 timeout_minutes 分钟的任务
+    - 将任务重置为 pending 状态
+    - 清除 assigned_agent 和 current_session_id
+
+    返回：重置的任务数量
+    """
+    from datetime import datetime, timedelta
+
+    timeout_threshold = datetime.now() - timedelta(minutes=timeout_minutes)
+
+    # 查找超时任务
+    stuck_tasks = (
+        db.query(SubTask)
+        .filter(SubTask.status == "in_progress", SubTask.updated_at < timeout_threshold)
+        .all()
+    )
+
+    count = 0
+    for task in stuck_tasks:
+        task.status = "pending"
+        task.assigned_agent = None
+        task.current_session_id = None
+        count += 1
+
+    if count > 0:
+        db.commit()
+
+    return count
