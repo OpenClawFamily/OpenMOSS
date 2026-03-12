@@ -1,0 +1,45 @@
+"""
+任务表模型
+"""
+
+import uuid
+from datetime import datetime
+from sqlalchemy import Column, String, Text, DateTime, Boolean
+
+from app.database import Base
+
+
+class Task(Base):
+    __tablename__ = "task"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String(200), nullable=False, comment="任务名称")
+    description = Column(Text, default="", comment="任务描述")
+    type = Column(String(20), default="once", comment="任务类型: once/recurring")
+    status = Column(
+        String(20),
+        default="planning",
+        index=True,
+        comment="状态: planning/preparing/active/in_progress/completed/archived/failed",
+    )
+    created_at = Column(DateTime, default=datetime.now, comment="创建时间")
+    updated_at = Column(
+        DateTime, default=datetime.now, onupdate=datetime.now, comment="更新时间"
+    )
+
+    # GitHub 相关字段
+    github_repo_url = Column(String(500), nullable=True, comment="GitHub 仓库地址")
+    github_repo_name = Column(String(200), nullable=True, comment="仓库名称")
+    github_default_branch = Column(String(50), default="main", comment="默认分支")
+    github_created_at = Column(DateTime, nullable=True, comment="仓库创建时间")
+
+    # AI 生成内容
+    plan_content = Column(Text, nullable=True, comment="AI 生成的方案内容")
+    plan_generated = Column(Boolean, default=False, comment="方案是否已生成")
+    readme_content = Column(Text, nullable=True, comment="README 内容")
+    readme_generated = Column(Boolean, default=False, comment="README 是否已生成")
+    readme_pushed = Column(Boolean, default=False, comment="README 是否已推送到 GitHub")
+
+    # 重试计数
+    plan_retry_count = Column(String(10), default="0", comment="方案生成重试次数")
+    readme_retry_count = Column(String(10), default="0", comment="README 生成重试次数")
