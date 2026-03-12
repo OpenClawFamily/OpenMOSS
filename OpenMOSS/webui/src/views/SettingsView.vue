@@ -303,7 +303,6 @@ async function copyText(text: string) {
                                     v-model="githubToken" 
                                     type="password"
                                     placeholder="ghp_xxxxxxxxxxxx" 
-                                    :disabled="!githubEnabled"
                                 />
                                 <p class="text-xs text-muted-foreground">
                                     需要 repo 权限的 Personal Access Token
@@ -317,7 +316,6 @@ async function copyText(text: string) {
                                     id="github-org" 
                                     v-model="githubOrg" 
                                     placeholder="不填则使用个人仓库" 
-                                    :disabled="!githubEnabled"
                                 />
                                 <p class="text-xs text-muted-foreground">
                                     如果不填，将使用与 Token 关联的个人账户创建仓库
