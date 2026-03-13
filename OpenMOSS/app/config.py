@@ -141,14 +141,13 @@ class AppConfig:
                             raise ValueError(
                                 f"不允许通过 API 更新 github.{sub_key}，请手动修改 config.yaml"
                             )
-                    # 所有配置存数据库
+                    # 所有配置存数据库（包含 false 值）
                     import sqlite3
                     try:
                         conn = sqlite3.connect(self._data.get("database", {}).get("path", "./data/tasks.db"))
                         for sub_key, sub_value in value.items():
-                            if sub_value:  # 只存非空值
-                                conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", 
-                                           (f"github_{sub_key}", str(sub_value)))
+                            conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", 
+                                       (f"github_{sub_key}", str(sub_value)))
                         conn.commit()
                         conn.close()
                         # 不存 YAML
