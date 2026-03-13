@@ -134,26 +134,27 @@ class AppConfig:
                             raise ValueError(
                                 f"不允许通过 API 更新 server.{sub_key}，请手动修改 config.yaml"
                             )
-                # github 下做子字段白名单校验，token 存数据库
+                # github 配置全部存数据库
                 if key == "github" and isinstance(value, dict):
                     for sub_key in value:
                         if sub_key not in GITHUB_ALLOWED_SUBKEYS:
                             raise ValueError(
                                 f"不允许通过 API 更新 github.{sub_key}，请手动修改 config.yaml"
                             )
-                    # token 存数据库，不存 YAML
-                    if "token" in value and value["token"]:
-                        import sqlite3
-                        try:
-                            conn = sqlite3.connect(self._data.get("database", {}).get("path", "./data/tasks.db"))
-                            conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", 
-                                       ("github_token", value["token"]))
-                            conn.commit()
-                            conn.close()
-                            # 从 value 中移除 token，不存 YAML
-                            value = {k: v for k, v in value.items() if k != "token"}
-                        except Exception as e:
-                            pass
+                    # 所有配置存数据库
+                    import sqlite3
+                    try:
+                        conn = sqlite3.connect(self._data.get("database", {}).get("path", "./data/tasks.db"))
+                        for sub_key, sub_value in value.items():
+                            if sub_value:  # 只存非空值
+                                conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", 
+                                           (f"github_{sub_key}", str(sub_value)))
+                        conn.commit()
+                        conn.close()
+                        # 不存 YAML
+                        value = {}
+                    except Exception as e:
+                        pass
                 
                 if isinstance(value, dict) and isinstance(self._data.get(key), dict):
                     self._data[key].update(value)
@@ -278,8 +279,7 @@ class AppConfig:
 
     @property
     def github_config(self) -> dict:
-        """从数据库加载 GitHub 配置（token 存储在数据库中，不推送到 GitHub）"""
-        # 从数据库加载敏感配置
+        """从数据库加载 GitHub 配置（所有敏感配置存数据库，不推送到 GitHub）"""
         import sqlite3
         github_settings = {}
         try:
@@ -287,19 +287,18 @@ class AppConfig:
             cursor = conn.cursor()
             cursor.execute("SELECT key, value FROM settings WHERE key LIKE 'github_%'")
             for row in cursor.fetchall():
-                github_settings[row[0].replace("github_", "")] = row[1]
+                key = row[0].replace("github_", "")
+                github_settings[key] = row[1]
             conn.close()
         except:
             pass
         
-        # 合并 YAML 配置（仅包含非敏感配置如 enabled, org）
-        yaml_config = self._data.get("github", {})
-        result = {
-            "enabled": yaml_config.get("enabled", False),
-            "org": yaml_config.get("org", ""),
+        # 合并配置
+        return {
+            "enabled": github_settings.get("enabled", "false").lower() == "true",
+            "org": github_settings.get("org", ""),
             "token": github_settings.get("token", "")
         }
-        return result
 
     @property
     def raw(self) -> dict:
