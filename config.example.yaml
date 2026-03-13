@@ -47,6 +47,18 @@ database:
 workspace:
   root: "/Users/xiaohuang/Desktop/TaskWork"
 
+# GitHub 集成配置
+github:
+  enabled: false
+  # GitHub Token (需要 repo 权限)
+  token: "ghp_xxxxxxxxxxxx"
+  # 组织名（可选，如果不填则使用个人仓库）
+  org: ""
+  # 仓库命名规则
+  repo:
+    prefix: "openmoss-"
+    visibility: "private"
+
 # WebUI 配置
 webui:
   public_feed: false # 活动流展示页公开开关（true=任何人可访问）

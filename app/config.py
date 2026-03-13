@@ -88,6 +88,16 @@ class AppConfig:
         return False
 
     @property
+    def github_enabled(self) -> bool:
+        """是否启用 GitHub 集成"""
+        return self._data.get("github", {}).get("enabled", False)
+
+    @property
+    def github_config(self) -> dict:
+        """获取 GitHub 配置"""
+        return self._data.get("github", {})
+
+    @property
     def is_initialized(self) -> bool:
         """是否已完成初始化向导"""
         return self._data.get("setup", {}).get("initialized", False)
@@ -107,7 +117,7 @@ class AppConfig:
         server 下仅允许更新 external_url（port/host 需手动改 config.yaml 后重启）
         不支持更新：setup, admin.password, database
         """
-        ALLOWED_KEYS = {"project", "agent", "notification", "webui", "workspace", "server"}
+        ALLOWED_KEYS = {"project", "agent", "notification", "webui", "workspace", "server", "github"}
         SERVER_ALLOWED_SUBKEYS = {"external_url"}
 
         with self._lock:

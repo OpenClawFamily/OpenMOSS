@@ -107,3 +107,69 @@ def create_module(db: Session, task_id: str, name: str, description: str = "") -
 def list_modules(db: Session, task_id: str) -> list:
     """查询任务下的模块"""
     return db.query(Module).filter(Module.task_id == task_id).all()
+
+
+def update_task_github_info(
+    db: Session,
+    task_id: str,
+    repo_url: str = None,
+    repo_name: str = None,
+) -> Task:
+    """更新任务的 GitHub 信息"""
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise ValueError(f"任务 {task_id} 不存在")
+
+    if repo_url is not None:
+        task.github_repo_url = repo_url
+    if repo_name is not None:
+        task.github_repo_name = repo_name
+
+    db.commit()
+    db.refresh(task)
+    return task
+
+
+def update_task_plan(
+    db: Session, task_id: str, plan_content: str, generated: bool = True
+) -> Task:
+    """更新任务的方案内容"""
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise ValueError(f"任务 {task_id} 不存在")
+
+    task.plan_content = plan_content
+    task.plan_generated = "true" if generated else "false"
+
+    db.commit()
+    db.refresh(task)
+    return task
+
+
+def update_task_readme(
+    db: Session, task_id: str, readme_content: str, generated: bool = True
+) -> Task:
+    """更新任务的 README 内容"""
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise ValueError(f"任务 {task_id} 不存在")
+
+    task.readme_content = readme_content
+    task.readme_generated = "true" if generated else "false"
+
+    db.commit()
+    db.refresh(task)
+    return task
+
+
+def mark_readme_pushed(db: Session, task_id: str) -> Task:
+    """标记 README 已推送"""
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise ValueError(f"任务 {task_id} 不存在")
+
+    task.readme_pushed = "true"
+
+    db.commit()
+    db.refresh(task)
+    return task
