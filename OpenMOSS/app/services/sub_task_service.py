@@ -144,14 +144,26 @@ def _change_status(
 def claim_sub_task(
     db: Session, sub_task_id: str, agent_id: str, session_id: str = None
 ) -> SubTask:
-    """认领子任务：pending → assigned"""
-    return _change_status(
+    """认领子任务：pending → assigned → in_progress
+    
+    优化：认领后自动开始执行，避免任务卡在 assigned 状态
+    """
+    # 先认领
+    sub_task = _change_status(
         db,
         sub_task_id,
         "assigned",
         assigned_agent=agent_id,
         current_session_id=session_id,
     )
+    
+    # 自动开始执行（pending → assigned → in_progress）
+    sub_task = db.query(SubTask).filter(SubTask.id == sub_task_id).first()
+    sub_task.status = "in_progress"
+    db.commit()
+    db.refresh(sub_task)
+    
+    return sub_task
 
 
 def start_sub_task(db: Session, sub_task_id: str, session_id: str = None) -> SubTask:
@@ -342,4 +354,34 @@ def reset_stuck_tasks(db: Session, timeout_minutes: int = 30) -> int:
     if count > 0:
         db.commit()
 
+    return count
+
+
+def auto_submit_timeout_tasks(db: Session, timeout_minutes: int = 30) -> int:
+    """自动提交超时任务
+    
+    如果任务处于 in_progress 状态超过 timeout_minutes 分钟，自动提交为完成
+    这样可以避免任务卡在 in_progress 状态
+    """
+    from datetime import timedelta
+    cutoff_time = datetime.utcnow() - timedelta(minutes=timeout_minutes)
+    
+    # 找出超时的 in_progress 任务
+    timeout_tasks = db.query(SubTask).filter(
+        SubTask.status == "in_progress",
+        SubTask.updated_at < cutoff_time
+    ).all()
+    
+    count = 0
+    for task in timeout_tasks:
+        try:
+            task.status = "review"
+            task.completed_at = datetime.utcnow()
+            db.commit()
+            count += 1
+            print(f"Auto-submitted timeout task: {task.name}")
+        except Exception as e:
+            print(f"Failed to auto-submit task {task.name}: {e}")
+            db.rollback()
+    
     return count
