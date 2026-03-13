@@ -187,8 +187,58 @@ def start_sub_task(db: Session, sub_task_id: str, session_id: str = None) -> Sub
 
 
 def submit_sub_task(db: Session, sub_task_id: str) -> SubTask:
-    """提交成果：in_progress → review"""
-    return _change_status(db, sub_task_id, "review")
+    """提交成果：in_progress → review
+    
+    自动推送到 GitHub（如果已配置）
+    """
+    sub_task = _change_status(db, sub_task_id, "review")
+    
+    # 自动推送到 GitHub
+    try:
+        from app.config import Config
+        cfg = Config.get_instance()
+        github_cfg = cfg.github_config
+        
+        if github_cfg.get("enabled") and github_cfg.get("token"):
+            from app.services import github_service
+            import os
+            
+            # 获取主任务信息
+            task = db.query(Task).filter(Task.id == sub_task.task_id).first()
+            if task and sub_task.deliverable:
+                repo_name = task.name.lower().replace(" ", "-")
+                
+                # 获取工作目录下的文件
+                workspace_root = cfg.workspace_root
+                task_dir = os.path.join(workspace_root, task.id, sub_task.id)
+                
+                if os.path.exists(task_dir):
+                    gh = github_service.GitHubService(
+                        token=github_cfg["token"],
+                        org=github_cfg.get("org")
+                    )
+                    
+                    try:
+                        # 创建或获取仓库
+                        try:
+                            gh.create_repo(repo_name, task.description or "")
+                        except ValueError as e:
+                            if "已存在" not in str(e):
+                                raise
+                        
+                        # 推送代码
+                        gh.push_files(
+                            repo_name,
+                            task_dir,
+                            f"完成子任务: {sub_task.name}"
+                        )
+                        print(f"已自动推送到 GitHub: {repo_name}")
+                    except Exception as e:
+                        print(f"GitHub 推送失败: {e}")
+    except Exception as e:
+        print(f"自动 GitHub 推送出错: {e}")
+    
+    return sub_task
 
 
 def complete_sub_task(
