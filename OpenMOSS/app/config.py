@@ -200,6 +200,9 @@ class AppConfig:
         # 排除内部标记
         safe.pop("setup", None)
 
+        # 添加 GitHub 配置（从数据库加载）
+        safe["github"] = self.github_config
+
         return safe
 
     @property
