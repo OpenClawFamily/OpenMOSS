@@ -118,8 +118,10 @@ class AppConfig:
             "webui",
             "workspace",
             "server",
+            "github",
         }
         SERVER_ALLOWED_SUBKEYS = {"external_url"}
+        GITHUB_ALLOWED_SUBKEYS = {"enabled", "token", "org"}
 
         with self._lock:
             for key, value in data.items():
@@ -131,6 +133,13 @@ class AppConfig:
                         if sub_key not in SERVER_ALLOWED_SUBKEYS:
                             raise ValueError(
                                 f"不允许通过 API 更新 server.{sub_key}，请手动修改 config.yaml"
+                            )
+                # github 下做子字段白名单校验
+                if key == "github" and isinstance(value, dict):
+                    for sub_key in value:
+                        if sub_key not in GITHUB_ALLOWED_SUBKEYS:
+                            raise ValueError(
+                                f"不允许通过 API 更新 github.{sub_key}，请手动修改 config.yaml"
                             )
                 if isinstance(value, dict) and isinstance(self._data.get(key), dict):
                     self._data[key].update(value)
