@@ -290,7 +290,7 @@ async function copyText(text: string) {
                                     <Label>启用 GitHub 集成</Label>
                                     <p class="text-xs text-muted-foreground">开启后可为任务自动创建 GitHub 仓库</p>
                                 </div>
-                                <Switch v-model:checked="githubEnabled" />
+                                <Switch v-model="githubEnabled" />
                             </div>
 
                             <Separator />
