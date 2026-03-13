@@ -3,7 +3,10 @@ OpenMOSS 任务调度中间件 — 主入口
 """
 import os
 import traceback
+import threading
+import time
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta
 from fastapi import FastAPI, Depends, Request
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -57,6 +60,41 @@ def _cleanup_old_request_logs():
         db.close()
 
 
+# ============================================================
+# 定时任务：重置超时卡住的任务
+# ============================================================
+
+# 定时任务配置
+STUCK_TASK_CHECK_INTERVAL = 300  # 每 300 秒（5分钟）检查一次
+STUCK_TASK_TIMEOUT_MINUTES = 30  # 超过 30 分钟视为超时
+
+
+def _reset_stuck_tasks_loop():
+    """后台线程：定期检查并重置超时卡住的任务"""
+    from app.database import SessionLocal
+    from app.services.sub_task_service import reset_stuck_tasks as reset_tasks
+
+    while True:
+        time.sleep(STUCK_TASK_CHECK_INTERVAL)
+        db = SessionLocal()
+        try:
+            # 重置超时 30 分钟的任务
+            count = reset_tasks(db, timeout_minutes=STUCK_TASK_TIMEOUT_MINUTES)
+            if count > 0:
+                print(f"[StuckTask] 已重置 {count} 个超时任务（超时阈值: {STUCK_TASK_TIMEOUT_MINUTES}分钟）")
+        except Exception as e:
+            print(f"[StuckTask] 重置失败: {e}")
+        finally:
+            db.close()
+
+
+def _start_stuck_task_scheduler():
+    """启动超时任务检查后台线程"""
+    thread = threading.Thread(target=_reset_stuck_tasks_loop, daemon=True)
+    thread.start()
+    print(f"[StuckTask] 超时任务检查已启动（间隔: {STUCK_TASK_CHECK_INTERVAL}秒，超时阈值: {STUCK_TASK_TIMEOUT_MINUTES}分钟）")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期：启动时初始化数据库"""
@@ -64,6 +102,9 @@ async def lifespan(app: FastAPI):
 
     # 清理过期请求日志
     _cleanup_old_request_logs()
+
+    # 启动超时任务检查后台线程
+    _start_stuck_task_scheduler()
 
     print(f"[{config.project_name}] 服务启动 → http://{config.server_host}:{config.server_port}")
     print(f"[{config.project_name}] 数据库: {config.database_path}")
