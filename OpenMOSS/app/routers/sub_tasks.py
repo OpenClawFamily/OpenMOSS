@@ -358,3 +358,14 @@ async def update_session(
         return sub_task_service.update_session(db, sub_task_id, req.session_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/auto-timeout", summary="自动提交超时任务")
+async def auto_timeout_tasks(
+    timeout_minutes: int = 30,
+    agent: Agent = Depends(require_role("patrol")),
+    db: Session = Depends(get_db),
+):
+    """自动提交超时任务（in_progress 状态超过指定分钟数）"""
+    count = sub_task_service.auto_submit_timeout_tasks(db, timeout_minutes)
+    return {"message": f"已自动提交 {count} 个超时任务"}

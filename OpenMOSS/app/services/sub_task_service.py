@@ -144,14 +144,26 @@ def _change_status(
 def claim_sub_task(
     db: Session, sub_task_id: str, agent_id: str, session_id: str = None
 ) -> SubTask:
-    """认领子任务：pending → assigned"""
-    return _change_status(
+    """认领子任务：pending → assigned → in_progress
+    
+    优化：认领后自动开始执行，避免任务卡在 assigned 状态
+    """
+    # 先认领
+    sub_task = _change_status(
         db,
         sub_task_id,
         "assigned",
         assigned_agent=agent_id,
         current_session_id=session_id,
     )
+    
+    # 自动开始执行（pending → assigned → in_progress）
+    sub_task = db.query(SubTask).filter(SubTask.id == sub_task_id).first()
+    sub_task.status = "in_progress"
+    db.commit()
+    db.refresh(sub_task)
+    
+    return sub_task
 
 
 def start_sub_task(db: Session, sub_task_id: str, session_id: str = None) -> SubTask:
@@ -175,8 +187,58 @@ def start_sub_task(db: Session, sub_task_id: str, session_id: str = None) -> Sub
 
 
 def submit_sub_task(db: Session, sub_task_id: str) -> SubTask:
-    """提交成果：in_progress → review"""
-    return _change_status(db, sub_task_id, "review")
+    """提交成果：in_progress → review
+    
+    自动推送到 GitHub（如果已配置）
+    """
+    sub_task = _change_status(db, sub_task_id, "review")
+    
+    # 自动推送到 GitHub
+    try:
+        from app.config import Config
+        cfg = Config.get_instance()
+        github_cfg = cfg.github_config
+        
+        if github_cfg.get("enabled") and github_cfg.get("token"):
+            from app.services import github_service
+            import os
+            
+            # 获取主任务信息
+            task = db.query(Task).filter(Task.id == sub_task.task_id).first()
+            if task and sub_task.deliverable:
+                repo_name = task.name.lower().replace(" ", "-")
+                
+                # 获取工作目录下的文件
+                workspace_root = cfg.workspace_root
+                task_dir = os.path.join(workspace_root, task.id, sub_task.id)
+                
+                if os.path.exists(task_dir):
+                    gh = github_service.GitHubService(
+                        token=github_cfg["token"],
+                        org=github_cfg.get("org")
+                    )
+                    
+                    try:
+                        # 创建或获取仓库
+                        try:
+                            gh.create_repo(repo_name, task.description or "")
+                        except ValueError as e:
+                            if "已存在" not in str(e):
+                                raise
+                        
+                        # 推送代码
+                        gh.push_files(
+                            repo_name,
+                            task_dir,
+                            f"完成子任务: {sub_task.name}"
+                        )
+                        print(f"已自动推送到 GitHub: {repo_name}")
+                    except Exception as e:
+                        print(f"GitHub 推送失败: {e}")
+    except Exception as e:
+        print(f"自动 GitHub 推送出错: {e}")
+    
+    return sub_task
 
 
 def complete_sub_task(
@@ -342,4 +404,34 @@ def reset_stuck_tasks(db: Session, timeout_minutes: int = 30) -> int:
     if count > 0:
         db.commit()
 
+    return count
+
+
+def auto_submit_timeout_tasks(db: Session, timeout_minutes: int = 30) -> int:
+    """自动提交超时任务
+    
+    如果任务处于 in_progress 状态超过 timeout_minutes 分钟，自动提交为完成
+    这样可以避免任务卡在 in_progress 状态
+    """
+    from datetime import timedelta
+    cutoff_time = datetime.utcnow() - timedelta(minutes=timeout_minutes)
+    
+    # 找出超时的 in_progress 任务
+    timeout_tasks = db.query(SubTask).filter(
+        SubTask.status == "in_progress",
+        SubTask.updated_at < cutoff_time
+    ).all()
+    
+    count = 0
+    for task in timeout_tasks:
+        try:
+            task.status = "review"
+            task.completed_at = datetime.utcnow()
+            db.commit()
+            count += 1
+            print(f"Auto-submitted timeout task: {task.name}")
+        except Exception as e:
+            print(f"Failed to auto-submit task {task.name}: {e}")
+            db.rollback()
+    
     return count

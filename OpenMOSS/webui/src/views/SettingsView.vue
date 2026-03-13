@@ -80,6 +80,16 @@ function showMessage(msg: string, type: 'success' | 'error' = 'success') {
     }
 }
 
+async function onTabChange(tab: string | number) {
+    if (tab === 'github') {
+        const res = await adminConfigApi.get()
+        const cfg = res.data as Record<string, Record<string, unknown>>
+        githubEnabled.value = (cfg.github?.enabled as boolean) ?? false
+        githubToken.value = (cfg.github?.token as string) ?? ''
+        githubOrg.value = (cfg.github?.org as string) ?? ''
+    }
+}
+
 async function saveSection(section: string) {
     saving.value = section
     try {
@@ -204,7 +214,7 @@ async function copyText(text: string) {
         </div>
 
         <template v-else>
-            <Tabs default-value="project" class="w-full">
+            <Tabs default-value="project" class="w-full" @update:modelValue="onTabChange">
                 <TabsList class="grid w-full grid-cols-5">
                     <TabsTrigger value="project">项目</TabsTrigger>
                     <TabsTrigger value="github">GitHub</TabsTrigger>
@@ -290,7 +300,7 @@ async function copyText(text: string) {
                                     <Label>启用 GitHub 集成</Label>
                                     <p class="text-xs text-muted-foreground">开启后可为任务自动创建 GitHub 仓库</p>
                                 </div>
-                                <Switch v-model:checked="githubEnabled" />
+                                <Switch v-model="githubEnabled" />
                             </div>
 
                             <Separator />

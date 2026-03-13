@@ -19,6 +19,7 @@ class ConfigUpdateRequest(BaseModel):
     webui: Optional[dict] = Field(None, description="WebUI 配置")
     workspace: Optional[dict] = Field(None, description="工作目录配置，如 {\"root\": \"/path\"}")
     server: Optional[dict] = Field(None, description="服务配置，如 {\"external_url\": \"https://...\"}")
+    github: Optional[dict] = Field(None, description="GitHub 配置，如 {\"enabled\": true, \"token\": \"xxx\", \"org\": \"xxx\"}")
 
 
 class PasswordUpdateRequest(BaseModel):

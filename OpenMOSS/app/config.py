@@ -118,8 +118,10 @@ class AppConfig:
             "webui",
             "workspace",
             "server",
+            "github",
         }
         SERVER_ALLOWED_SUBKEYS = {"external_url"}
+        GITHUB_ALLOWED_SUBKEYS = {"enabled", "token", "org"}
 
         with self._lock:
             for key, value in data.items():
@@ -132,6 +134,27 @@ class AppConfig:
                             raise ValueError(
                                 f"不允许通过 API 更新 server.{sub_key}，请手动修改 config.yaml"
                             )
+                # github 配置全部存数据库
+                if key == "github" and isinstance(value, dict):
+                    for sub_key in value:
+                        if sub_key not in GITHUB_ALLOWED_SUBKEYS:
+                            raise ValueError(
+                                f"不允许通过 API 更新 github.{sub_key}，请手动修改 config.yaml"
+                            )
+                    # 所有配置存数据库（包含 false 值）
+                    import sqlite3
+                    try:
+                        conn = sqlite3.connect(self._data.get("database", {}).get("path", "./data/tasks.db"))
+                        for sub_key, sub_value in value.items():
+                            conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", 
+                                       (f"github_{sub_key}", str(sub_value)))
+                        conn.commit()
+                        conn.close()
+                        # 不存 YAML
+                        value = {}
+                    except Exception as e:
+                        pass
+                
                 if isinstance(value, dict) and isinstance(self._data.get(key), dict):
                     self._data[key].update(value)
                 else:
@@ -175,6 +198,9 @@ class AppConfig:
 
         # 排除内部标记
         safe.pop("setup", None)
+
+        # 添加 GitHub 配置（从数据库加载）
+        safe["github"] = self.github_config
 
         return safe
 
@@ -255,7 +281,26 @@ class AppConfig:
 
     @property
     def github_config(self) -> dict:
-        return self._data.get("github", {})
+        """从数据库加载 GitHub 配置（所有敏感配置存数据库，不推送到 GitHub）"""
+        import sqlite3
+        github_settings = {}
+        try:
+            conn = sqlite3.connect(self._data.get("database", {}).get("path", "./data/tasks.db"))
+            cursor = conn.cursor()
+            cursor.execute("SELECT key, value FROM settings WHERE key LIKE 'github_%'")
+            for row in cursor.fetchall():
+                key = row[0].replace("github_", "")
+                github_settings[key] = row[1]
+            conn.close()
+        except:
+            pass
+        
+        # 合并配置
+        return {
+            "enabled": github_settings.get("enabled", "false").lower() == "true",
+            "org": github_settings.get("org", ""),
+            "token": github_settings.get("token", "")
+        }
 
     @property
     def raw(self) -> dict:
