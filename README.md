@@ -252,7 +252,6 @@ OpenMOSS/
 |   +-- local-web-search/           # Local gateway web search Skill ⚙️
 |
 |-- rules/                          # Global rule templates
-|-- tests/                          # Test cases
 |-- docs/                           # Design documents
 |-- config.example.yaml             # Config file template
 |-- requirements.txt                # Python dependencies
@@ -494,9 +493,6 @@ pip install -r requirements.txt
 
 # Dev mode (auto-reload on code changes)
 python -m uvicorn app.main:app --host 0.0.0.0 --port 6565 --reload
-
-# Run tests
-python -m pytest tests/
 ```
 
 ### Frontend Development
