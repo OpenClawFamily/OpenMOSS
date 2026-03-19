@@ -337,7 +337,7 @@ notification:
 
 **飞书群 chat_id 怎么获取？**
 
-把 Agent 拉到飞书群后，直接在群里 @Agent 问它要 `chat_id`。OpenClaw 会自动识别 `chat:oc_xxx` 格式。
+把 Agent 拉到telegram群后，直接在群里 @Agent 问它要 `chat_id`。OpenClaw 会自动识别 `chat:oc_xxx` 格式。
 
 ### 第六步：设置 Cron 定时唤醒
 

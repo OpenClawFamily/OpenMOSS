@@ -50,11 +50,14 @@ def init_db():
         patrol_record,
     )
 
+    # 创建所有表
     Base.metadata.create_all(bind=engine)
     print(f"[Database] 数据库初始化完成，共 {len(Base.metadata.tables)} 张表")
 
     # 静默迁移旧状态值（available/busy → active，offline → disabled）
     _migrate_agent_statuses()
+    # 数据库迁移：为旧数据库添加新字段
+    _migrate_database()
 
     # 首次启动时，自动导入全局规则模板
     _load_default_rules()
@@ -80,6 +83,44 @@ def _migrate_agent_statuses():
             db.rollback()
     except Exception:
         db.rollback()
+
+
+def _migrate_database():
+    """数据库迁移：为旧数据库添加新字段"""
+    from sqlalchemy import inspect, text
+
+    db = SessionLocal()
+    try:
+        inspector = inspect(engine)
+        existing_columns = [col["name"] for col in inspector.get_columns("task")]
+
+        # 需要添加的新字段
+        new_columns = {
+            "github_repo_url": "VARCHAR(500)",
+            "github_repo_name": "VARCHAR(200)",
+            "plan_content": "TEXT",
+            "plan_generated": "VARCHAR(10)",
+            "readme_content": "TEXT",
+            "readme_generated": "VARCHAR(10)",
+            "readme_pushed": "VARCHAR(10)",
+            "plan_retry_count": "VARCHAR(10)",
+            "readme_retry_count": "VARCHAR(10)",
+        }
+
+        with engine.connect() as conn:
+            for column_name, column_type in new_columns.items():
+                if column_name not in existing_columns:
+                    try:
+                        conn.execute(
+                            text(f"ALTER TABLE task ADD COLUMN {column_name} {column_type}")
+                        )
+                        print(f"[Database] 迁移：已添加字段 {column_name}")
+                    except Exception as e:
+                        print(f"[Database] 迁移：添加字段 {column_name} 失败: {e}")
+            conn.commit()
+
+    except Exception as e:
+        print(f"[Database] 迁移检查失败: {e}")
     finally:
         db.close()
 
