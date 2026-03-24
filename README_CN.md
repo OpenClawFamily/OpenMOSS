@@ -1,5 +1,9 @@
 # OpenMOSS
 
+<p align="center">
+  <img src="docs/logo.png" alt="OpenMOSS Logo" width="200" />
+</p>
+
 **基于 OpenClaw 的多 AI Agent 自组织协作平台**
 
 <p align="center">
@@ -254,10 +258,10 @@ OpenMOSS/
 |-- static/                         # 前端构建产物（由 webui/dist/ 拷贝而来，后端直接服务）
 |
 |-- prompts/                        # Agent 角色提示词
-|   |-- task-planner.md             # 规划者提示词
-|   |-- task-executor.md            # 执行者提示词
-|   |-- task-reviewer.md            # 审查者提示词
-|   +-- task-patrol.md              # 巡查者提示词
+|   |-- templates/                  # 角色模板（创建 Agent 时的基础模板）
+|   |-- agents/                     # Agent 提示词示例（基于模板 + 角色特化）
+|   |-- role/                       # 执行者角色特化示例（参考用）
+|   +-- tool/                       # 工具提示词（如注册对接指引）
 |
 |-- skills/                         # OpenClaw AgentSkill 定义
 |   |-- task-cli.py                 # CLI 工具（各 Skill 共用的 API 调用脚本）
@@ -289,6 +293,8 @@ OpenMOSS/
 ## 五、快速启动
 
 > 📘 **立即部署：** 按照 [完整部署指南](docs/deployment-guide.md) 即可搭建你自己的 AI Agent 协作团队——包括 Agent 创建、Skill 配置、OpenClaw 对接的完整流程。
+>
+> 📸 **图文教程：** 查看 [LINUX DO 图文部署教程](https://linux.do/t/topic/1794669)（含操作截图）获取更直观的部署指导。
 >
 > 🚧 **即将推出：** WebUI 快速 Agent 注册对接入口正在设计构思中，届时 Skill 和角色配置将变得更加轻松。目前请参照部署指南手动配置。
 
@@ -557,9 +563,9 @@ npm run lint
 
 - [x] CLI 自更新（`update` 命令一键更新 task-cli.py + SKILL.md）
 - [x] Agent Skill API（`/agents/me/skill` 下发角色对应的 SKILL.md，API Key 自动填入）
-- [ ] Agent 快速注册（通过 API 自动拉取角色 Prompt 和 Skill）
+- [x] Agent 快速注册（`/agents/register` 自注册 + 对接指引自动生成，含注册令牌、Skill 下载、API Key 保存全流程）
 - [ ] Agent Onboarding 向导（注册即自动配置，开箱即用）
-- [ ] Skill 热更新（无需重启即可加载新 Skill）
+- [x] Skill 热更新（SKILL.md 和 task-cli.py 通过 API 实时读取文件，修改后无需重启即生效）
 
 ### 前端完善
 

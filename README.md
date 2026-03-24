@@ -1,5 +1,9 @@
 # OpenMOSS
 
+<p align="center">
+  <img src="docs/logo.png" alt="OpenMOSS Logo" width="200" />
+</p>
+
 **Self-Organizing Multi-Agent System for OpenClaw**
 
 <p align="center">
@@ -233,10 +237,10 @@ OpenMOSS/
 |-- static/                         # Frontend build output (copied from webui/dist/, served by backend)
 |
 |-- prompts/                        # Agent role prompts
-|   |-- task-planner.md             # Planner prompt
-|   |-- task-executor.md            # Executor prompt
-|   |-- task-reviewer.md            # Reviewer prompt
-|   +-- task-patrol.md              # Patrol prompt
+|   |-- templates/                  # Role templates (base templates for creating agents)
+|   |-- agents/                     # Agent prompt examples (template + role specialization)
+|   |-- role/                       # Executor role specialization examples (reference)
+|   +-- tool/                       # Tool prompts (e.g., onboarding guide)
 |
 |-- skills/                         # OpenClaw AgentSkill definitions
 |   |-- task-cli.py                 # CLI tool (shared API client script)
@@ -268,6 +272,8 @@ OpenMOSS/
 ## Quick Start
 
 > 📘 **Deploy now:** Follow the [Full Deployment Guide](docs/deployment-guide-en.md) to get OpenMOSS running with your own AI agent team — including Agent setup, Skill configuration, and OpenClaw integration.
+>
+> 📸 **Visual tutorial:** Check out the [LINUX DO Visual Deployment Guide](https://linux.do/t/topic/1794669) (with screenshots) for a more intuitive walkthrough.
 >
 > 🚧 **Coming soon:** Quick Agent onboarding via WebUI is currently being designed. For now, please follow the deployment guide for manual setup.
 
@@ -531,9 +537,9 @@ npm run lint
 
 - [x] CLI self-update (`update` command auto-downloads latest task-cli.py + SKILL.md)
 - [x] Agent Skill API (`/agents/me/skill` serves role-specific SKILL.md with API key pre-filled)
-- [ ] Quick agent registration (auto-pull role Prompt and Skills via API)
+- [x] Quick agent registration (`/agents/register` self-registration + auto-generated onboarding guide with token, Skill download, and API Key setup)
 - [ ] Agent onboarding wizard (register and auto-configure, ready out of the box)
-- [ ] Skill hot-reload (load new Skills without restart)
+- [x] Skill hot-reload (SKILL.md and task-cli.py served via API with live file reads — changes take effect without restart)
 
 ### Frontend Improvements
 

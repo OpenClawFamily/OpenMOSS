@@ -295,7 +295,12 @@ function currentPageData() {
             <template v-else-if="activeTab === 'leaderboard'">
                 <div v-if="leaderboardData.items.length" class="divide-y divide-border/30">
                     <div v-for="(item, idx) in leaderboardData.items" :key="item.agent_id"
-                        class="flex items-center gap-4 px-5 py-3.5 hover:bg-muted/20 transition-colors animate-slide-up"
+                        class="group flex items-center gap-4 px-5 py-3.5 hover:bg-muted/20 transition-all duration-200 animate-slide-up"
+                        :class="{
+                            'bg-gradient-to-r from-amber-50/80 to-transparent dark:from-amber-950/20': item.rank === 1,
+                            'bg-gradient-to-r from-slate-100/80 to-transparent dark:from-slate-800/20': item.rank === 2,
+                            'bg-gradient-to-r from-orange-50/60 to-transparent dark:from-orange-950/15': item.rank === 3,
+                        }"
                         :style="{ animationDelay: `${idx * 30}ms` }">
                         <!-- 排名 -->
                         <div class="w-10 text-center shrink-0">
@@ -326,7 +331,7 @@ function currentPageData() {
 
                         <!-- 积分 -->
                         <div class="text-right shrink-0">
-                            <div class="text-lg font-bold tabular-nums"
+                            <div class="text-lg font-bold tabular-nums transition-transform duration-150 group-hover:scale-110 origin-right"
                                 :class="item.total_score > 0 ? 'text-emerald-600' : item.total_score < 0 ? 'text-rose-500' : 'text-muted-foreground'">
                                 {{ item.total_score > 0 ? '+' : '' }}{{ item.total_score }}
                             </div>
@@ -398,20 +403,3 @@ function currentPageData() {
     </div>
 </template>
 
-<style scoped>
-@keyframes slide-up-fade-in {
-    from {
-        opacity: 0;
-        transform: translateY(12px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.animate-slide-up {
-    animation: slide-up-fade-in 0.35s ease-out both;
-}
-</style>

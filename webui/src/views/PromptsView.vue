@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { clipboardCopy } from '@/lib/clipboard'
 import { marked } from 'marked'
 import { promptsApi, adminRuleApi } from '@/api/client'
 import type { AgentPromptMeta, PromptTemplate } from '@/api/client'
@@ -547,7 +548,7 @@ const lobsterCopied = ref(false)
 async function copyWithPrefix() {
   try {
     const text = buildQuickCopyPrefix(previewRole.value) + composedPrompt.value
-    await navigator.clipboard.writeText(text)
+    await clipboardCopy(text)
     lobsterCopied.value = true
     showMessage('🦞 已复制（含对接引导）')
     setTimeout(() => { lobsterCopied.value = false }, 2000)
@@ -559,7 +560,7 @@ async function copyWithPrefix() {
 // 普通复制（仅提示词）
 async function copyToClipboard() {
   try {
-    await navigator.clipboard.writeText(composedPrompt.value)
+    await clipboardCopy(composedPrompt.value)
     copied.value = true
     showMessage('已复制到剪贴板')
     setTimeout(() => { copied.value = false }, 2000)
@@ -576,7 +577,7 @@ async function copyOnboarding() {
     return
   }
   try {
-    await navigator.clipboard.writeText(onboardingSection.value)
+    await clipboardCopy(onboardingSection.value)
     onboardingCopied.value = true
     showMessage('已复制平台对接指引')
     setTimeout(() => { onboardingCopied.value = false }, 2000)
@@ -587,7 +588,7 @@ async function copyOnboarding() {
 
 async function copyEditorContent() {
   try {
-    await navigator.clipboard.writeText(fullEditorContent.value)
+    await clipboardCopy(fullEditorContent.value)
     editorCopied.value = true
     showMessage('已复制到剪贴板')
     setTimeout(() => { editorCopied.value = false }, 2000)
@@ -672,10 +673,10 @@ function goBack() {
                 <button
                   class="inline-flex items-center gap-1.5 rounded-full border border-dashed px-3 py-1 text-xs font-medium transition-all duration-200 hover:shadow-sm"
                   :class="{
-                    'border-blue-300 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950': r.role === 'planner',
-                    'border-amber-300 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950': r.role === 'executor',
-                    'border-purple-300 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950': r.role === 'reviewer',
-                    'border-emerald-300 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950': r.role === 'patrol',
+                    'border-violet-300 text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950': r.role === 'planner',
+                    'border-sky-300 text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950': r.role === 'executor',
+                    'border-amber-300 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950': r.role === 'reviewer',
+                    'border-teal-300 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-950': r.role === 'patrol',
                   }"
                   @click="startCreate(r.role)">
                   <Compass v-if="r.role === 'planner'" class="h-3 w-3" />
@@ -689,10 +690,10 @@ function goBack() {
               <span v-for="r in roleStatus.filter(r => r.done)" :key="'done-' + r.role"
                 class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
                 :class="{
-                  'bg-blue-500/10 text-blue-600 dark:text-blue-400': r.role === 'planner',
-                  'bg-amber-500/10 text-amber-600 dark:text-amber-400': r.role === 'executor',
-                  'bg-purple-500/10 text-purple-600 dark:text-purple-400': r.role === 'reviewer',
-                  'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400': r.role === 'patrol',
+                  'bg-violet-500/10 text-violet-600 dark:text-violet-400': r.role === 'planner',
+                  'bg-sky-500/10 text-sky-600 dark:text-sky-400': r.role === 'executor',
+                  'bg-amber-500/10 text-amber-600 dark:text-amber-400': r.role === 'reviewer',
+                  'bg-teal-500/10 text-teal-600 dark:text-teal-400': r.role === 'patrol',
                 }">
                 <Check class="h-3 w-3" />
                 {{ r.role === 'planner' ? '规划者' : r.role === 'reviewer' ? '审查者' : r.role === 'patrol' ? '巡查者' :
@@ -746,10 +747,10 @@ function goBack() {
               <div v-for="(items, role) in groupedAgents" :key="role" class="space-y-4">
                 <h3 class="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                   <span class="inline-block w-2 h-2 rounded-full" :class="{
-                    'bg-blue-500': role === 'planner',
-                    'bg-amber-500': role === 'executor',
-                    'bg-purple-500': role === 'reviewer',
-                    'bg-emerald-500': role === 'patrol',
+                    'bg-violet-500': role === 'planner',
+                    'bg-sky-500': role === 'executor',
+                    'bg-amber-500': role === 'reviewer',
+                    'bg-teal-500': role === 'patrol',
                     'bg-muted-foreground': !['planner','executor','reviewer','patrol'].includes(String(role)),
                   }" />
                   {{ roleLabel(String(role)) }}
@@ -767,10 +768,10 @@ function goBack() {
                         style="backface-visibility: hidden;">
                         <!-- 顶部渐变条 -->
                         <div class="h-1.5" :class="{
-                          'bg-gradient-to-r from-blue-400 to-indigo-500': item.role === 'planner',
-                          'bg-gradient-to-r from-amber-400 to-orange-500': item.role === 'executor',
-                          'bg-gradient-to-r from-violet-400 to-purple-500': item.role === 'reviewer',
-                          'bg-gradient-to-r from-emerald-400 to-teal-500': item.role === 'patrol',
+                          'bg-gradient-to-r from-violet-400 to-indigo-500': item.role === 'planner',
+                          'bg-gradient-to-r from-sky-400 to-blue-500': item.role === 'executor',
+                          'bg-gradient-to-r from-amber-400 to-orange-500': item.role === 'reviewer',
+                          'bg-gradient-to-r from-teal-400 to-emerald-500': item.role === 'patrol',
                           'bg-gradient-to-r from-gray-400 to-gray-500': !['planner','executor','reviewer','patrol'].includes(item.role),
                         }" />
                         <div class="p-5 flex flex-col justify-between flex-1">
@@ -778,16 +779,16 @@ function goBack() {
                             <div class="flex items-start justify-between">
                               <!-- 图标圆形 -->
                               <div class="h-11 w-11 rounded-xl flex items-center justify-center shadow-sm" :class="{
-                                'bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950 dark:to-indigo-900': item.role === 'planner',
-                                'bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-950 dark:to-orange-900': item.role === 'executor',
-                                'bg-gradient-to-br from-violet-50 to-purple-100 dark:from-violet-950 dark:to-purple-900': item.role === 'reviewer',
-                                'bg-gradient-to-br from-emerald-50 to-teal-100 dark:from-emerald-950 dark:to-teal-900': item.role === 'patrol',
+                                'bg-gradient-to-br from-violet-50 to-indigo-100 dark:from-violet-950 dark:to-indigo-900': item.role === 'planner',
+                                'bg-gradient-to-br from-sky-50 to-blue-100 dark:from-sky-950 dark:to-blue-900': item.role === 'executor',
+                                'bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-950 dark:to-orange-900': item.role === 'reviewer',
+                                'bg-gradient-to-br from-teal-50 to-emerald-100 dark:from-teal-950 dark:to-emerald-900': item.role === 'patrol',
                                 'bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800': !['planner','executor','reviewer','patrol'].includes(item.role),
                               }">
-                                <Compass v-if="item.role === 'planner'" class="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                                <Zap v-else-if="item.role === 'executor'" class="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                                <SearchCheck v-else-if="item.role === 'reviewer'" class="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                                <ShieldCheck v-else-if="item.role === 'patrol'" class="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                                <Compass v-if="item.role === 'planner'" class="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                                <Zap v-else-if="item.role === 'executor'" class="h-5 w-5 text-sky-600 dark:text-sky-400" />
+                                <SearchCheck v-else-if="item.role === 'reviewer'" class="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                                <ShieldCheck v-else-if="item.role === 'patrol'" class="h-5 w-5 text-teal-600 dark:text-teal-400" />
                                 <Bot v-else class="h-5 w-5 text-gray-600 dark:text-gray-400" />
                               </div>
                               <!-- 状态标签 -->
@@ -807,10 +808,10 @@ function goBack() {
                           </div>
                           <div class="flex items-center justify-between mt-3">
                             <span class="text-xs px-2.5 py-1 rounded-full font-medium" :class="{
-                              'bg-blue-500/10 text-blue-600 dark:text-blue-400': item.role === 'planner',
-                              'bg-amber-500/10 text-amber-600 dark:text-amber-400': item.role === 'executor',
-                              'bg-purple-500/10 text-purple-600 dark:text-purple-400': item.role === 'reviewer',
-                              'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400': item.role === 'patrol',
+                              'bg-violet-500/10 text-violet-600 dark:text-violet-400': item.role === 'planner',
+                              'bg-sky-500/10 text-sky-600 dark:text-sky-400': item.role === 'executor',
+                              'bg-amber-500/10 text-amber-600 dark:text-amber-400': item.role === 'reviewer',
+                              'bg-teal-500/10 text-teal-600 dark:text-teal-400': item.role === 'patrol',
                             }">{{ roleLabel(item.role) }}</span>
                             <span class="text-[10px] text-muted-foreground/40 italic">hover →</span>
                           </div>
@@ -822,10 +823,10 @@ function goBack() {
                         style="backface-visibility: hidden; transform: rotateY(180deg);">
                         <!-- 顶部彩条 -->
                         <div class="h-1.5" :class="{
-                          'bg-gradient-to-r from-blue-400 to-indigo-500': item.role === 'planner',
-                          'bg-gradient-to-r from-amber-400 to-orange-500': item.role === 'executor',
-                          'bg-gradient-to-r from-violet-400 to-purple-500': item.role === 'reviewer',
-                          'bg-gradient-to-r from-emerald-400 to-teal-500': item.role === 'patrol',
+                          'bg-gradient-to-r from-violet-400 to-indigo-500': item.role === 'planner',
+                          'bg-gradient-to-r from-sky-400 to-blue-500': item.role === 'executor',
+                          'bg-gradient-to-r from-amber-400 to-orange-500': item.role === 'reviewer',
+                          'bg-gradient-to-r from-teal-400 to-emerald-500': item.role === 'patrol',
                           'bg-gradient-to-r from-gray-400 to-gray-500': !['planner','executor','reviewer','patrol'].includes(item.role),
                         }" />
                         <div class="p-5 flex flex-col justify-between flex-1">
@@ -833,10 +834,10 @@ function goBack() {
                             <div class="flex items-center gap-2">
                               <h4 class="text-sm font-bold truncate">{{ item.name || item.slug }}</h4>
                               <span class="text-[10px] px-1.5 py-0.5 rounded-full font-medium" :class="{
-                                'bg-blue-500/10 text-blue-600': item.role === 'planner',
-                                'bg-amber-500/10 text-amber-600': item.role === 'executor',
-                                'bg-purple-500/10 text-purple-600': item.role === 'reviewer',
-                                'bg-emerald-500/10 text-emerald-600': item.role === 'patrol',
+                                'bg-violet-500/10 text-violet-600': item.role === 'planner',
+                                'bg-sky-500/10 text-sky-600': item.role === 'executor',
+                                'bg-amber-500/10 text-amber-600': item.role === 'reviewer',
+                                'bg-teal-500/10 text-teal-600': item.role === 'patrol',
                               }">{{ roleLabel(item.role) }}</span>
                             </div>
                             <p class="text-xs text-muted-foreground leading-relaxed line-clamp-4">
@@ -946,25 +947,25 @@ function goBack() {
                 @click="openTemplate(tmpl.role)">
                 <!-- 顶部渐变条 -->
                 <div class="h-1.5" :class="{
-                  'bg-gradient-to-r from-blue-400 to-indigo-500': tmpl.role === 'planner',
-                  'bg-gradient-to-r from-amber-400 to-orange-500': tmpl.role === 'executor',
-                  'bg-gradient-to-r from-violet-400 to-purple-500': tmpl.role === 'reviewer',
-                  'bg-gradient-to-r from-emerald-400 to-teal-500': tmpl.role === 'patrol',
+                  'bg-gradient-to-r from-violet-400 to-indigo-500': tmpl.role === 'planner',
+                  'bg-gradient-to-r from-sky-400 to-blue-500': tmpl.role === 'executor',
+                  'bg-gradient-to-r from-amber-400 to-orange-500': tmpl.role === 'reviewer',
+                  'bg-gradient-to-r from-teal-400 to-emerald-500': tmpl.role === 'patrol',
                   'bg-gradient-to-r from-gray-400 to-gray-500': !['planner','executor','reviewer','patrol'].includes(tmpl.role),
                 }" />
                 <div class="p-5 flex items-start gap-4">
                   <!-- 图标 -->
                   <div class="h-12 w-12 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0" :class="{
-                    'bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950 dark:to-indigo-900': tmpl.role === 'planner',
-                    'bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-950 dark:to-orange-900': tmpl.role === 'executor',
-                    'bg-gradient-to-br from-violet-50 to-purple-100 dark:from-violet-950 dark:to-purple-900': tmpl.role === 'reviewer',
-                    'bg-gradient-to-br from-emerald-50 to-teal-100 dark:from-emerald-950 dark:to-teal-900': tmpl.role === 'patrol',
+                    'bg-gradient-to-br from-violet-50 to-indigo-100 dark:from-violet-950 dark:to-indigo-900': tmpl.role === 'planner',
+                    'bg-gradient-to-br from-sky-50 to-blue-100 dark:from-sky-950 dark:to-blue-900': tmpl.role === 'executor',
+                    'bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-950 dark:to-orange-900': tmpl.role === 'reviewer',
+                    'bg-gradient-to-br from-teal-50 to-emerald-100 dark:from-teal-950 dark:to-emerald-900': tmpl.role === 'patrol',
                     'bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800': !['planner','executor','reviewer','patrol'].includes(tmpl.role),
                   }">
-                    <Compass v-if="tmpl.role === 'planner'" class="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                    <Zap v-else-if="tmpl.role === 'executor'" class="h-6 w-6 text-amber-600 dark:text-amber-400" />
-                    <SearchCheck v-else-if="tmpl.role === 'reviewer'" class="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                    <ShieldCheck v-else-if="tmpl.role === 'patrol'" class="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                    <Compass v-if="tmpl.role === 'planner'" class="h-6 w-6 text-violet-600 dark:text-violet-400" />
+                    <Zap v-else-if="tmpl.role === 'executor'" class="h-6 w-6 text-sky-600 dark:text-sky-400" />
+                    <SearchCheck v-else-if="tmpl.role === 'reviewer'" class="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                    <ShieldCheck v-else-if="tmpl.role === 'patrol'" class="h-6 w-6 text-teal-600 dark:text-teal-400" />
                     <Bot v-else class="h-6 w-6 text-gray-600 dark:text-gray-400" />
                   </div>
                   <!-- 文本 -->
@@ -972,10 +973,10 @@ function goBack() {
                     <div class="flex items-center gap-2">
                       <p class="text-base font-bold">{{ roleLabel(tmpl.role) || tmpl.role }}</p>
                       <span class="text-[10px] px-1.5 py-0.5 rounded-full font-medium" :class="{
-                        'bg-blue-500/10 text-blue-600': tmpl.role === 'planner',
-                        'bg-amber-500/10 text-amber-600': tmpl.role === 'executor',
-                        'bg-purple-500/10 text-purple-600': tmpl.role === 'reviewer',
-                        'bg-emerald-500/10 text-emerald-600': tmpl.role === 'patrol',
+                        'bg-violet-500/10 text-violet-600': tmpl.role === 'planner',
+                        'bg-sky-500/10 text-sky-600': tmpl.role === 'executor',
+                        'bg-amber-500/10 text-amber-600': tmpl.role === 'reviewer',
+                        'bg-teal-500/10 text-teal-600': tmpl.role === 'patrol',
                       }">{{ tmpl.filename }}</span>
                     </div>
                     <p class="text-xs text-muted-foreground mt-1.5 leading-relaxed">

@@ -591,8 +591,8 @@ async function openSubTaskDetail(subTaskId: string) {
                         <div :key="`tasks-${taskPage}-${taskStatus}-${taskType}-${taskKeyword}`"
                             class="divide-y divide-border/30">
                             <button v-for="(task, idx) in taskPageData.items" :key="task.id" type="button"
-                                class="w-full px-4 py-3 text-left transition-colors hover:bg-muted/30 animate-slide-up"
-                                :class="selectedTaskId === task.id ? 'bg-accent/50' : ''"
+                                class="w-full px-4 py-3 text-left transition-all duration-150 hover:bg-muted/30 animate-slide-up"
+                                :class="selectedTaskId === task.id ? 'bg-accent/60 border-l-[3px] border-l-primary' : 'border-l-[3px] border-l-transparent'"
                                 :style="{ animationDelay: `${idx * 40}ms` }" @click="selectTask(task.id)">
                                 <div class="flex items-start justify-between gap-2">
                                     <div class="min-w-0 flex-1">
@@ -983,20 +983,3 @@ async function openSubTaskDetail(subTaskId: string) {
     </TooltipProvider>
 </template>
 
-<style scoped>
-@keyframes slide-up-fade-in {
-    from {
-        opacity: 0;
-        transform: translateY(12px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.animate-slide-up {
-    animation: slide-up-fade-in 0.35s ease-out both;
-}
-</style>

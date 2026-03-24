@@ -70,29 +70,34 @@ function handleLogout() {
 <template>
   <SidebarProvider>
     <Sidebar>
-      <SidebarHeader class="p-4">
-        <div class="flex items-center gap-3">
+      <SidebarHeader class="px-5 pt-6 pb-4">
+        <!-- Logo 区域 -->
+        <div class="flex items-center gap-3.5 mb-3">
           <div
-            class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground text-sm font-bold">
+            class="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground text-base font-bold shadow-[var(--shadow-sm)]">
             M
           </div>
           <div>
-            <div class="font-semibold text-sm">OpenMOSS</div>
-            <div class="text-xs text-muted-foreground">管理控制台</div>
+            <div class="font-bold text-base tracking-tight">OpenMOSS</div>
+            <div class="text-[11px] text-muted-foreground/60">多 Agent 协作平台</div>
           </div>
         </div>
+        <!-- 装饰线 -->
+        <div class="h-[2px] rounded-full bg-gradient-to-r from-primary/30 via-primary/10 to-transparent" />
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>导航</SidebarGroupLabel>
+          <SidebarGroupLabel class="px-5 text-[10px] uppercase tracking-widest text-muted-foreground/50 font-semibold">导航</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu class="space-y-1 px-2">
               <SidebarMenuItem v-for="item in menuItems" :key="item.path">
                 <SidebarMenuButton as-child :is-active="route.path === item.path">
-                  <router-link :to="item.path">
-                    <component :is="item.icon" />
-                    <span>{{ item.title }}</span>
+                  <router-link :to="item.path"
+                    class="group/link transition-all duration-150 hover:translate-x-0.5 !py-5 !gap-4 !rounded-xl">
+                    <component :is="item.icon" class="h-6 w-6 shrink-0 transition-opacity duration-150"
+                      :class="route.path === item.path ? 'opacity-100' : 'opacity-50 group-hover/link:opacity-80'" />
+                    <span class="text-base">{{ item.title }}</span>
                   </router-link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -101,16 +106,18 @@ function handleLogout() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter class="p-4">
-        <Button variant="ghost" class="w-full justify-start gap-2" @click="showLogoutConfirm = true">
+      <SidebarFooter class="px-4 pb-5 pt-3">
+        <Button variant="ghost" size="sm"
+          class="w-full justify-start gap-2 text-muted-foreground hover:text-destructive transition-colors duration-150 h-9"
+          @click="showLogoutConfirm = true">
           <LogOut class="h-4 w-4" />
-          退出登录
+          <span class="text-sm">退出登录</span>
         </Button>
       </SidebarFooter>
     </Sidebar>
 
     <SidebarInset>
-      <header class="flex h-14 items-center gap-2 border-b px-4">
+      <header class="flex h-14 items-center gap-2 border-b px-4 bg-background/80 backdrop-blur-md sticky top-0 z-10">
         <SidebarTrigger />
         <Separator orientation="vertical" class="h-4" />
         <h1 class="text-sm font-medium">
@@ -128,10 +135,10 @@ function handleLogout() {
     <Transition name="fade">
       <div v-if="showLogoutConfirm" class="fixed inset-0 z-50 flex items-center justify-center">
         <!-- 遮罩 -->
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showLogoutConfirm = false" />
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="showLogoutConfirm = false" />
         <!-- 弹窗 -->
         <div
-          class="relative z-10 w-full max-w-sm rounded-xl border bg-background p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+          class="relative z-10 w-full max-w-sm rounded-2xl border bg-background/95 backdrop-blur-xl p-6 shadow-[var(--shadow-lg)] animate-in fade-in zoom-in-95 duration-200">
           <div class="space-y-2 text-center">
             <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted">
               <LogOut class="h-5 w-5 text-muted-foreground" />
@@ -152,9 +159,9 @@ function handleLogout() {
   <Teleport to="body">
     <Transition name="fade">
       <div v-if="showUrlMissing" class="fixed inset-0 z-50 flex items-center justify-center">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showUrlMissing = false" />
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="showUrlMissing = false" />
         <div
-          class="relative z-10 w-full max-w-sm rounded-xl border bg-background p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+          class="relative z-10 w-full max-w-sm rounded-2xl border bg-background/95 backdrop-blur-xl p-6 shadow-[var(--shadow-lg)] animate-in fade-in zoom-in-95 duration-200">
           <div class="space-y-2 text-center">
             <div class="text-3xl mb-2">⚠️</div>
             <h2 class="text-lg font-semibold">请配置服务访问地址</h2>

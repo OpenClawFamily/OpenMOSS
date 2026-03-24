@@ -204,6 +204,27 @@ interface TrendCard {
     gradientId: string
     animKey: string
     values: number[]
+    dates: string[]
+}
+
+// Sparkline hover state
+const hoverState = reactive<{ cardIdx: number; pointIdx: number }>({
+    cardIdx: -1,
+    pointIdx: -1,
+})
+
+function getSparkPoint(values: number[], idx: number) {
+    if (idx < 0 || idx >= values.length) return { x: 0, y: 0 }
+    const max = Math.max(...values, 1)
+    const step = SPARK_W / Math.max(values.length - 1, 1)
+    return {
+        x: idx * step,
+        y: SPARK_H - ((values[idx] ?? 0) / max) * (SPARK_H - 4) - 2,
+    }
+}
+
+function formatShortDate(d: string) {
+    return d.slice(5) // "2026-03-15" -> "03-15"
 }
 
 const trendCards = computed<TrendCard[]>(() => {
@@ -217,6 +238,7 @@ const trendCards = computed<TrendCard[]>(() => {
             gradientId: 'g-created',
             animKey: 'trend_created',
             values: t.sub_task_created_trend.map(p => p.count),
+            dates: t.sub_task_created_trend.map(p => p.date),
         },
         {
             title: '完成子任务',
@@ -225,6 +247,7 @@ const trendCards = computed<TrendCard[]>(() => {
             gradientId: 'g-completed',
             animKey: 'trend_completed',
             values: t.sub_task_completed_trend.map(p => p.count),
+            dates: t.sub_task_completed_trend.map(p => p.date),
         },
         {
             title: '审查总量',
@@ -233,6 +256,7 @@ const trendCards = computed<TrendCard[]>(() => {
             gradientId: 'g-review',
             animKey: 'trend_review',
             values: t.review_trend.map(p => p.total),
+            dates: t.review_trend.map(p => p.date),
         },
         {
             title: '积分净变化',
@@ -241,6 +265,7 @@ const trendCards = computed<TrendCard[]>(() => {
             gradientId: 'g-score',
             animKey: 'trend_score',
             values: t.score_delta_trend.map(p => p.net_score_delta),
+            dates: t.score_delta_trend.map(p => p.date),
         },
         {
             title: 'API 请求量',
@@ -249,6 +274,7 @@ const trendCards = computed<TrendCard[]>(() => {
             gradientId: 'g-request',
             animKey: 'trend_request',
             values: t.request_trend.map(p => p.count),
+            dates: t.request_trend.map(p => p.date),
         },
         {
             title: '活动日志',
@@ -257,6 +283,7 @@ const trendCards = computed<TrendCard[]>(() => {
             gradientId: 'g-activity',
             animKey: 'trend_activity',
             values: t.activity_trend.map(p => p.count),
+            dates: t.activity_trend.map(p => p.date),
         },
     ]
 })</script>
@@ -293,7 +320,7 @@ const trendCards = computed<TrendCard[]>(() => {
             <!-- ─── 核心指标卡片 ─── -->
             <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <Card v-for="(card, idx) in coreCards" :key="card.title"
-                    class="animate-slide-up border-border/40 hover:border-border/70 transition-colors"
+                    class="animate-slide-up border-border/40 hover:border-border/70 hover:shadow-[var(--shadow-md)] hover:scale-[1.02] transition-all duration-200 cursor-default"
                     :style="{ animationDelay: `${idx * 50}ms` }">
                     <CardContent class="flex items-center gap-3 p-4">
                         <div class="rounded-lg p-2.5" :class="card.bg">
@@ -493,7 +520,7 @@ const trendCards = computed<TrendCard[]>(() => {
                     </div>
                     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         <Card v-for="(card, idx) in trendCards" :key="card.title"
-                            class="border-border/40 animate-slide-up overflow-hidden"
+                            class="border-border/40 animate-slide-up overflow-hidden hover:shadow-[var(--shadow-md)] hover:scale-[1.02] transition-all duration-200 cursor-default"
                             :style="{ animationDelay: `${800 + idx * 50}ms` }">
                             <CardContent class="p-4 pb-0">
                                 <div class="flex items-center justify-between mb-1">
@@ -502,7 +529,8 @@ const trendCards = computed<TrendCard[]>(() => {
                                         animatedValues[card.animKey] ?? card.total }}</span>
                                 </div>
                                 <svg :viewBox="`0 0 ${SPARK_W} ${SPARK_H}`" class="w-full h-10"
-                                    preserveAspectRatio="none">
+                                    preserveAspectRatio="none"
+                                    @mouseleave="hoverState.cardIdx = -1; hoverState.pointIdx = -1">
                                     <defs>
                                         <linearGradient :id="card.gradientId" x1="0" x2="0" y1="0" y2="1">
                                             <stop offset="0%" :stop-color="card.color" stop-opacity="0.3" />
@@ -514,7 +542,34 @@ const trendCards = computed<TrendCard[]>(() => {
                                     <path :d="buildSparklinePath(card.values).line" fill="none" :stroke="card.color"
                                         stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
                                         class="sparkline-line" />
+
+                                    <!-- Hover targets (invisible rects for each data point) -->
+                                    <rect v-for="(_, pi) in card.values" :key="pi"
+                                        :x="pi * (SPARK_W / Math.max(card.values.length - 1, 1)) - SPARK_W / card.values.length / 2"
+                                        :y="0" :width="SPARK_W / card.values.length" :height="SPARK_H"
+                                        fill="transparent" class="cursor-crosshair"
+                                        @mouseenter="hoverState.cardIdx = idx; hoverState.pointIdx = pi" />
+
+                                    <!-- Hover indicator -->
+                                    <template v-if="hoverState.cardIdx === idx && hoverState.pointIdx >= 0">
+                                        <!-- Vertical line -->
+                                        <line :x1="getSparkPoint(card.values, hoverState.pointIdx).x"
+                                            :x2="getSparkPoint(card.values, hoverState.pointIdx).x"
+                                            :y1="0" :y2="SPARK_H"
+                                            :stroke="card.color" stroke-opacity="0.3" stroke-width="1"
+                                            stroke-dasharray="2 2" />
+                                        <!-- Dot -->
+                                        <circle :cx="getSparkPoint(card.values, hoverState.pointIdx).x"
+                                            :cy="getSparkPoint(card.values, hoverState.pointIdx).y"
+                                            r="3" :fill="card.color" stroke="white" stroke-width="1.5" />
+                                    </template>
                                 </svg>
+                                <!-- Hover tooltip (outside SVG for proper text rendering) -->
+                                <div v-if="hoverState.cardIdx === idx && hoverState.pointIdx >= 0"
+                                    class="flex items-center justify-between text-[10px] text-muted-foreground px-1 -mt-1">
+                                    <span>{{ formatShortDate(card.dates[hoverState.pointIdx] ?? '') }}</span>
+                                    <span class="font-semibold tabular-nums" :style="{ color: card.color }">{{ card.values[hoverState.pointIdx] }}</span>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>
@@ -657,22 +712,6 @@ const trendCards = computed<TrendCard[]>(() => {
 </template>
 
 <style scoped>
-@keyframes slide-up-fade-in {
-    from {
-        opacity: 0;
-        transform: translateY(12px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.animate-slide-up {
-    animation: slide-up-fade-in 0.35s ease-out both;
-}
-
 /* Sparkline draw-in animation */
 @keyframes sparkline-draw {
     from {

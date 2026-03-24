@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { clipboardCopy } from '@/lib/clipboard'
 import { useDebounceFn } from '@vueuse/core'
 import {
     adminAgentApi,
@@ -8,6 +9,7 @@ import {
     type AdminAgentDetail,
     type AdminPageResponse,
 } from '@/api/client'
+import { toast } from 'vue-sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,16 +39,6 @@ import {
 
 const PAGE_SIZE = 20
 const mode = ref<'list' | 'detail'>('list')
-
-// 消息提示
-const message = ref('')
-const messageType = ref<'success' | 'error'>('success')
-
-function showMessage(text: string, type: 'success' | 'error' = 'success') {
-    message.value = text
-    messageType.value = type
-    setTimeout(() => { message.value = '' }, 3000)
-}
 
 const keyword = ref('')
 const roleFilter = ref('all')
@@ -94,6 +86,15 @@ function getRoleBadgeClass(role: string) {
         reviewer: 'border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800',
         patrol: 'border-teal-200 bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800',
     }[role] ?? 'border-border bg-muted text-muted-foreground')
+}
+
+function getRoleBarClass(role: string) {
+    return ({
+        planner: 'bg-violet-400 dark:bg-violet-500',
+        executor: 'bg-sky-400 dark:bg-sky-500',
+        reviewer: 'bg-amber-400 dark:bg-amber-500',
+        patrol: 'bg-teal-400 dark:bg-teal-500',
+    }[role] ?? 'bg-muted-foreground/30')
 }
 
 function formatStatus(status: string) {
@@ -275,7 +276,7 @@ async function handleSaveEdit() {
             description: editDescription.value,
         })
         showEditDialog.value = false
-        showMessage(`${editName.value} 信息已更新`)
+        toast(`${editName.value} 信息已更新`)
         if (mode.value === 'detail') {
             void loadAgentDetail(selectedAgentId.value)
         }
@@ -283,7 +284,7 @@ async function handleSaveEdit() {
     } catch (err: unknown) {
         const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
         editError.value = msg ?? '保存失败，请重试'
-        showMessage(editError.value, 'error')
+        toast.error(editError.value)
     } finally {
         savingEdit.value = false
     }
@@ -309,10 +310,10 @@ async function handleToggleStatus() {
             void loadAgentDetail(toggleTarget.value.id)
         }
         void loadAgents()
-        showMessage(newStatus === 'active' ? `${toggleTarget.value.name} 已被启用` : `${toggleTarget.value.name} 已被禁用`)
+        toast(newStatus === 'active' ? `${toggleTarget.value.name} 已被启用` : `${toggleTarget.value.name} 已被禁用`)
     } catch (err) {
         console.error('Failed to toggle status', err)
-        showMessage('状态切换失败', 'error')
+        toast.error('状态切换失败')
     } finally {
         togglingStatus.value = false
     }
@@ -335,7 +336,7 @@ async function handleResetKey() {
 
 async function copyNewKey() {
     try {
-        await navigator.clipboard.writeText(newApiKey.value)
+        await clipboardCopy(newApiKey.value)
         keyCopied.value = true
         setTimeout(() => { keyCopied.value = false }, 2000)
     } catch {
@@ -388,7 +389,7 @@ async function handleDeleteAgent() {
     try {
         await adminAgentApi.deleteAgent(selectedAgentId.value, selectedAgent.value.name)
         showDeleteDialog.value = false
-        showMessage(`${selectedAgent.value.name} 已被删除`)
+        toast(`${selectedAgent.value.name} 已被删除`)
         selectedAgentId.value = null
         selectedAgent.value = null
         if (mode.value === 'detail') mode.value = 'list'
@@ -404,18 +405,6 @@ async function handleDeleteAgent() {
 
 <template>
     <div class="p-6 max-w-6xl mx-auto">
-
-        <!-- 消息提示 -->
-        <Transition name="toast">
-            <div v-if="message"
-                class="fixed top-6 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2.5 rounded-xl px-5 py-3 text-sm font-medium shadow-xl ring-1 ring-black/5 backdrop-blur-md"
-                :class="messageType === 'success'
-                    ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/90 dark:text-emerald-200'
-                    : 'bg-red-50 text-red-800 dark:bg-red-950/90 dark:text-red-200'">
-                <span class="text-base">{{ messageType === 'success' ? '✅' : '❌' }}</span>
-                {{ message }}
-            </div>
-        </Transition>
 
         <!-- 视图过渡 -->
         <Transition name="view" mode="out-in" appear>
@@ -475,8 +464,13 @@ async function handleDeleteAgent() {
                 <!-- 卡片网格 -->
                 <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <div v-for="(agent, idx) in pageData.items" :key="agent.id"
-                        class="group relative rounded-xl border border-border/50 bg-card p-4 transition-all duration-200 hover:border-border hover:shadow-md cursor-pointer animate-slide-up"
+                        class="group relative rounded-xl border border-border/50 bg-card overflow-hidden transition-all duration-200 hover:border-border hover:shadow-[var(--shadow-md)] hover:scale-[1.02] cursor-pointer animate-slide-up"
                         :style="{ animationDelay: `${idx * 40}ms` }" @click="openDetail(agent.id)">
+
+                        <!-- 角色色彩条 -->
+                        <div class="h-[3px] w-full" :class="getRoleBarClass(agent.role)" />
+
+                        <div class="p-4">
 
                         <!-- 顶部：状态点 + 名称 + 角色 -->
                         <div class="flex items-start justify-between gap-2 mb-2">
@@ -514,8 +508,8 @@ async function handleDeleteAgent() {
 
                         <Separator class="mb-3 opacity-50" />
 
-                        <!-- 操作按钮行 -->
-                        <div class="flex items-center gap-1" @click.stop>
+                        <!-- 操作按钮行（hover 时显示）-->
+                        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200" @click.stop>
                             <TooltipProvider>
                                 <Button variant="ghost" size="sm" class="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
                                     @click="openEditDialogForAgent(agent)">
@@ -536,6 +530,7 @@ async function handleDeleteAgent() {
                                     删除
                                 </Button>
                             </TooltipProvider>
+                        </div>
                         </div>
                     </div>
                 </div>

@@ -271,8 +271,8 @@ def delete_agent(slug: str) -> bool:
 def compose_prompt(slug: str) -> str:
     """
     生成完整 Prompt。
-    新格式：内容已包含模板和对接指引，直接返回。
-    旧格式：拼接模板 + Agent 内容 + 自动生成的对接指引。
+    Agent 文件内容已包含角色模板（创建时已合并），
+    因此只需追加对接指引即可。
     """
     agent_data = get_agent(slug)
     if not agent_data:
@@ -281,20 +281,12 @@ def compose_prompt(slug: str) -> str:
     role = agent_data.get("role", "")
     agent_content = agent_data.get("content", "")
 
-    # 新格式：内容已包含对接指引
+    # 内容已包含对接指引，直接返回
     if ONBOARDING_MARKER in agent_content:
         return agent_content.strip()
 
-    # 旧格式：拼接模板 + Agent 内容 + 对接指引
-    template_content = ""
-    if role:
-        template = get_template(role)
-        if template:
-            template_content = template["content"]
-
+    # 拼接 Agent 内容 + 对接指引（不再重复拼接模板）
     parts = []
-    if template_content:
-        parts.append(template_content.strip())
     if agent_content:
         parts.append(agent_content.strip())
     parts.append(generate_onboarding(role))
@@ -322,21 +314,29 @@ def generate_onboarding(role: str = "") -> str:
         "```bash",
         f"curl -X POST {external_url}/api/agents/register {bs}",
         f'  -H "Content-Type: application/json" {bs}',
-        f"""  -d '{{"name": "你的名字", "role": "{role}", "token": "{registration_token}"}}'""",
+        f'  -H "X-Registration-Token: {registration_token}" {bs}',
+        f"""  -d '{{"name": "你的名字", "role": "{role}", "description": "简要描述你的职责"}}'""",
         "```",
         "",
+        "> **字段说明**：",
+        "> - `name`：你的名字（如 AI小吴）",
+        "> - `role`：角色类型（planner / executor / reviewer / patrol）",
+        "> - `description`：简要描述你的职责（如「后端开发，负责 API 和数据库」）",
+        "",
         "→ 返回你的 API Key，后续所有操作需要携带",
+        "",
+        "> ⚠️ **API Key 只在注册时显示一次，请务必立即记录。** 如果遗失，需要联系管理员重置。",
         "",
         "### 第二步：获取工作工具并保存为 Skill",
         "",
         "```bash",
         "# 下载 CLI 工具",
         f"curl -o task-cli.py {bs}",
-        f'  -H "X-Agent-Token: 你的API_KEY" {bs}',
+        f'  -H "Authorization: Bearer 你的API_KEY" {bs}',
         f"  {external_url}/api/tools/cli",
         "",
-        "# 获取技能提示词（Skill 说明）",
-        f'curl -H "X-Agent-Token: 你的API_KEY" {bs}',
+        "# 获取技能提示词（Skill 说明，API Key 已自动填入）",
+        f'curl -H "Authorization: Bearer 你的API_KEY" {bs}',
         f"  {external_url}/api/agents/me/skill",
         "```",
         "",
@@ -346,7 +346,19 @@ def generate_onboarding(role: str = "") -> str:
         f"- 将技能提示词保存为 `task-{role}-skill/SKILL.md`",
         "- Skill 是你的工作工具箱，后续按 SKILL.md 中的指引操作即可",
         "",
-        "### 第三步：开始工作",
+        "### 第三步：确认 API Key 已保存",
+        "",
+        "打开 SKILL.md，确认 `## 认证信息` 部分已包含你的 API Key：",
+        "",
+        "```markdown",
+        "## 认证信息",
+        "",
+        "- API_KEY: `ock_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`",
+        "```",
+        "",
+        "如果 API Key 未自动填入，请手动将注册时获得的 Key 填写到上述位置。",
+        "",
+        "### 第四步：开始工作",
         "",
         "```bash",
         "python task-cli.py rules    # 查看工作规则",
